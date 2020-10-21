@@ -1,5 +1,5 @@
 module SimLynx
 
-# Write your package code here.
+include("../src/core.jl")
 
 end
