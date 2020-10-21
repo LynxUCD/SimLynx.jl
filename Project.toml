@@ -1,0 +1,13 @@
+name = "SimLynx"
+uuid = "4afcfb46-fe9b-4036-bc19-7ccfa92ea78e"
+authors = ["Trystan Kaes <trystanblkaes@gmail.com>", "Anthony Dupont <>\"anthony.dupont@ucdenver.edu>", "Doug Williams <milton.williams@ucdenver.edu>"]
+version = "0.3.0"
+
+[compat]
+julia = "1.5"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
