@@ -75,9 +75,9 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "discrete.md",
-        "continuous.md",
-        "examples.md",
+        "Discrete Simulations" => "discrete.md",
+        "Continuous Simulations" => "continuous.md",
+        "Examples" => "examples.md",
     ],
 )
 
