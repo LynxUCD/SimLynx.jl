@@ -1,5 +1,5 @@
 
-include("../src/simlynx.jl")
+using SimLynx
 
 using Distributions: Exponential, Uniform
 using Random

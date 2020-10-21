@@ -21,7 +21,7 @@ Once the simulation runs, statistics are printed for the tellers allocation and
 queue length as well as a plot of the queue length over time.
 =#
 
-include("../src/simlynx.jl")
+using SimLynx
 
 using Distributions: Exponential, Uniform
 using Random

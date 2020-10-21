@@ -77,6 +77,7 @@ function main()
         global tellers = [Teller(i) for i = 1:N_TELLERS]
         global teller_queue = FifoQueue{Customer}()
         @schedule at 0.0 generate(1)
+        println("Hello world?")
         start_simulation()
         print_stats(teller_queue.n)
         plot_history(teller_queue.n, "event_based.png")

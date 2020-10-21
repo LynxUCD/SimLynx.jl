@@ -381,3 +381,7 @@ function resume(process::Process, notice::Notice)
     process_state!(process, :active)
     schedule(notice)
 end
+
+include("variables.jl")
+include("queues.jl")
+include("resources.jl")

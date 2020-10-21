@@ -7,7 +7,7 @@ simulation runs to gather statistics (e.g., distributions) across the runs. This
 example just executes the multiple runs without gathering additional data.
 =#
 
-include("../src/simlynx.jl")
+using SimLynx
 
 using Distributions: Exponential, Uniform
 using Random

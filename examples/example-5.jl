@@ -6,7 +6,7 @@ This is an example on an open-loop simulation model. This example gathers
 statistics on the maximum number of tellers needed for no customer waiting.
 =#
 
-include("../src/simlynx.jl")
+using SimLynx
 
 using Distributions: Exponential, Uniform
 using Random

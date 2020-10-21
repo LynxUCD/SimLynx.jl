@@ -1,7 +1,7 @@
 # example-4.jl
 # Example nested simulation models with data collection
 
-include("../src/simlynx.jl")
+using SimLynx
 
 using Distributions: Exponential, Uniform
 using Random

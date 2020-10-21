@@ -31,7 +31,7 @@ in expression starting at C:\Users\doug\Develop\SimLynx\example-2.jl:49
 --- (1)
 =#
 
-include("../src/simlynx.jl")
+using SimLynx
 
 using Distributions
 using Random
