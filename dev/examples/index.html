@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · SimLynx.jl</title><link rel="canonical" href="https://LynxUCD.github.io/SimLynx.jl/examples/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">SimLynx.jl</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/LynxUCD/SimLynx.jl/blob/master/docs/src/examples.md#L" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h1><p>The code for these examples can also be found on Github  in the <code>docs/examples</code> folder.</p><h2 id="Event-Based"><a class="docs-heading-anchor" href="#Event-Based">Event Based</a><a id="Event-Based-1"></a><a class="docs-heading-anchor-permalink" href="#Event-Based" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+This is a simple process-based discrete-event simulation of an N teller, single
+queue bank.
+
+There are two (2) processes:
+    generator(n::Integer)
+      Generates n arrivals into the system with exponentially distributed
+      inter-arrival time with a mean of 4.0.
+    customer(i::Integer)
+      The process representing the ith customer in the system. Each customer
+      acquires a teller and works a uniformly distributed time between 2.0 and
+      10.0. It then releases the teller and exits.
+
+There is a single resource, tellers, that represents the tellers in the bank.
+The number if tellers is set by the N_TELLERS global variable.
+
+Once the simulation runs, statistics are printed for the tellers allocation and
+queue length as well as a plot of the queue length over time.
+&quot;&quot;&quot;
+using SimLynx
+
+using Distributions
+using Random
+
+const N_TELLERS = 2
+const N_CUSTOMERS = 10
+
+struct Customer
+    id::Int64
+    Customer(id::Int64) = new(id)
+end
+
+Base.show(io::IO, customer::Customer) =
+    print(io, &quot;Customer($(customer.id))&quot;)
+
+mutable struct Teller
+    id::Int64
+    serving::Union{Customer, Nothing}
+    Teller(id::Int64) = new(id, nothing)
+end
+
+Base.show(io::IO, teller::Teller) =
+    print(io, &quot;Teller($(teller.id))&quot;)
+
+tellers = nothing
+teller_queue = nothing
+
+function available_teller()::Union{Teller, Nothing}
+    for teller in tellers
+        if isnothing(teller.serving)
+            return teller
+        end
+    end
+    return nothing
+end
+
+@event generate(i::Integer) begin
+    if i &lt;= N_CUSTOMERS
+        @schedule now arrival(Customer(i))
+        @schedule in rand(Distributions.Exponential(4.0)) generate(i + 1)
+    end
+end
+
+@event arrival(customer::Customer) begin
+    println(&quot;$(current_time()): $customer arrives&quot;)
+    teller = available_teller()
+    if isnothing(teller)
+        enqueue!(teller_queue, customer)
+    else
+        @schedule now service(teller, customer)
+    end
+end
+
+@event service(teller::Teller, customer::Customer) begin
+    println(&quot;$(current_time()): $teller starts servicing $customer&quot;)
+    teller.serving = customer
+    @schedule in rand(Distributions.Uniform(2.0, 10.0)) departure(teller, customer)
+end
+
+@event departure(teller::Teller, customer::Customer) begin
+    println(&quot;$(current_time()): $teller finishes servicing $customer&quot;)
+    if isempty(teller_queue)
+        teller.serving = nothing
+    else
+        next_customer = dequeue!(teller_queue)
+        teller.serving = next_customer
+        @schedule now service(teller, customer)
+    end
+end
+
+function main()
+    @with_new_simulation begin
+        global tellers = [Teller(i) for i = 1:N_TELLERS]
+        global teller_queue = FifoQueue{Customer}()
+        @schedule at 0.0 generate(1)
+        println(&quot;Hello world?&quot;)
+        start_simulation()
+        print_stats(teller_queue.n)
+        plot_history(teller_queue.n, &quot;event_based.png&quot;)
+    end
+end
+
+main()
+</code></pre><h2 id="Example-1"><a class="docs-heading-anchor" href="#Example-1">Example-1</a><a id="Example-1-1"></a><a class="docs-heading-anchor-permalink" href="#Example-1" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+A simple implementation of an event-based simulation. This program simulates a bank.
+&quot;&quot;&quot;
+using SimLynx
+
+using Distributions: Exponential, Uniform
+using Random
+
+const N_TELLERS = 2
+tellers = nothing
+
+&quot;Process to generate n customers arriving into the system.&quot;
+@process generator(n::Integer) begin
+    for i = 1:n
+        work(rand(Exponential(4.0)))
+        @schedule now customer(i)
+    end
+end
+
+&quot;The ith customer into the system.&quot;
+@process customer(i::Integer) begin
+    dist = Uniform(2.0, 10.0)
+    @with_resource tellers begin
+        work(rand(dist))
+    end
+end
+
+&quot;Run the simulation for n customers.&quot;
+function run_simulation(n::Integer)
+    @with_new_simulation begin
+        global tellers = Resource(N_TELLERS, &quot;tellers&quot;)
+        @schedule at 0.0 generator(n)
+        start_simulation()
+        print_stats(tellers.allocated, &quot;Allocated Statistics&quot;)
+        print_stats(tellers.queue_length, &quot;Queue Length Statistics&quot;)
+        plot_history(tellers.queue_length, &quot;queue_length.png&quot;,
+            &quot;Queue Length History&quot;)
+    end
+end
+
+run_simulation(100)
+</code></pre><h2 id="Example-2"><a class="docs-heading-anchor" href="#Example-2">Example-2</a><a id="Example-2-1"></a><a class="docs-heading-anchor-permalink" href="#Example-2" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+Like example-1.jl but using @event instead of @process for the generate
+functionality. Also uses the (experimental) trace functionality.
+
+To Do:
+--- (1)
+We get the following error when we use
+&#39;using Distributions: Exponential, Uniform&#39;
+but not when we use
+&#39;using Distributions&#39;
+
+ERROR: LoadError: TaskFailedException:
+UndefVarError: Distributions not defined
+Stacktrace:
+ [1] macro expansion at C:\Users\doug\Develop\SimLynx\example-2.jl:23 [inlined]
+ [2] (::var&quot;#26#28&quot;{Int64})() at C:\Users\doug\Develop\SimLynx\SimLynx.jl:41
+ [3] start_simulation() at C:\Users\doug\Develop\SimLynx\SimLynx.jl:349
+ [4] macro expansion at C:\Users\doug\Develop\SimLynx\example-2.jl:41 [inlined]
+ [5] macro expansion at C:\Users\doug\Develop\SimLynx\SimLynx.jl:246 [inlined]
+ [6] (::var&quot;#33#34&quot;)() at .\task.jl:356
+Stacktrace:
+ [1] wait at .\task.jl:267 [inlined]
+ [2] macro expansion at C:\Users\doug\Develop\SimLynx\SimLynx.jl:251 [inlined]
+ [3] run_simulation() at C:\Users\doug\Develop\SimLynx\example-2.jl:37
+ [4] top-level scope at C:\Users\doug\Develop\SimLynx\example-2.jl:49
+ [5] include_string(::Function, ::Module, ::String, ::String) at .\loading.jl:1088
+in expression starting at C:\Users\doug\Develop\SimLynx\example-2.jl:49
+--- (1)
+&quot;&quot;&quot;
+
+using SimLynx
+
+using Distributions
+using Random
+
+const N_TELLERS = 2
+const N_CUSTOMERS = 10
+
+tellers = nothing
+
+&quot;Generate the ith customer and schedule the next arrival.&quot;
+@event generate(i::Integer) begin
+    if i &lt;= N_CUSTOMERS
+        @schedule now customer(i)
+        @schedule in rand(Distributions.Exponential(4.0)) generate(i + 1)
+    end
+end
+
+&quot;The ith customer into the system.&quot;
+@process customer(i::Integer) begin
+    dist = Distributions.Uniform(2.0, 10.0)
+    @with_resource tellers begin
+        work(rand(dist))
+    end
+end
+
+&quot;Run the simulation.&quot;
+function run_simulation()
+    @with_new_simulation begin
+        current_trace!(true)
+        global tellers = Resource(N_TELLERS, &quot;tellers&quot;)
+        @schedule at 0.0 generate(1)
+        start_simulation()
+        print_stats(tellers.allocated, &quot;Allocated Statistics&quot;)
+        print_stats(tellers.queue_length, &quot;Queue Length Statistics&quot;)
+        plot_history(tellers.queue_length, &quot;queue_length.png&quot;,
+            &quot;Queue Length History&quot;)
+    end
+end
+
+run_simulation()
+</code></pre><h2 id="Example-3"><a class="docs-heading-anchor" href="#Example-3">Example-3</a><a id="Example-3-1"></a><a class="docs-heading-anchor-permalink" href="#Example-3" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+This example demonstrates nested simulations, which is used to run multiple
+simulation runs to gather statistics (e.g., distributions) across the runs. This
+example just executes the multiple runs without gathering additional data.
+&quot;&quot;&quot;
+
+using SimLynx
+
+using Distributions: Exponential, Uniform
+using Random
+
+const N_TELLERS = 2
+tellers = nothing
+
+&quot;Process to generate n customers arriving into the system.&quot;
+@process generator(n::Integer) begin
+    dist = Exponential(4.0)
+    for i = 1:n
+        work(rand(dist))
+        @schedule now customer(i)
+    end
+end
+
+&quot;The ith customer into the system.&quot;
+@process customer(i::Integer) begin
+    dist = Uniform(2.0, 10.0)
+    @with_resource tellers begin
+        work(rand(dist))
+    end
+end
+
+&quot;Run the simulation for n customers.&quot;
+function run_simulation(n::Integer)
+    @with_new_simulation begin
+        for i = 1:10
+            @with_new_simulation begin
+                global tellers = Resource(N_TELLERS, &quot;tellers&quot;)
+                @schedule at 0.0 generator(n)
+                start_simulation()
+                print_stats(tellers.allocated, &quot;Allocated Statistics&quot;)
+                print_stats(tellers.queue_length, &quot;Queue Length Statistics&quot;)
+                plot_history(tellers.queue_length, &quot;queue_length.png&quot;,
+                    &quot;Queue Length History&quot;)
+                print_stats(tellers.wait, &quot;Queue Wait Statistics&quot;)
+            end
+        end
+    end
+end
+
+run_simulation(1_000)
+</code></pre><h2 id="Example-4"><a class="docs-heading-anchor" href="#Example-4">Example-4</a><a id="Example-4-1"></a><a class="docs-heading-anchor-permalink" href="#Example-4" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+Example nested simulation models with data collection
+&quot;&quot;&quot;
+
+using SimLynx
+
+using Distributions: Exponential, Uniform
+using Random
+
+const N_TELLERS = 2
+tellers = nothing
+
+&quot;Process to generate n customers arriving into the system.&quot;
+@process generator(n::Integer) begin
+    dist = Exponential(4.0)
+    for i = 1:n
+        work(rand(dist))
+        @schedule now customer(i)
+    end
+end
+
+&quot;The ith customer into the system.&quot;
+@process customer(i::Integer) begin
+    @with_resource tellers begin
+        work(rand(Uniform(2.0, 10.0)))
+    end
+end
+
+&quot;Run the simulation for n customers.&quot;
+function run_simulation(n₁::Integer, n₂::Integer)
+    @with_new_simulation begin
+        avg_wait = Variable{Float64}(data=:tally, history=true)
+        for i = 1:n₁
+            @with_new_simulation begin
+                global tellers = Resource(N_TELLERS, &quot;tellers&quot;)
+                @schedule at 0.0 generator(n₂)
+                start_simulation()
+                set!(avg_wait, mean(tellers.wait.stats))
+            end
+        end
+        print_stats(avg_wait)
+        plot_history(avg_wait, &quot;avg-weight.png&quot;)
+    end
+end
+
+@time run_simulation(10_000, 1_000)
+</code></pre><h2 id="Example-5"><a class="docs-heading-anchor" href="#Example-5">Example-5</a><a id="Example-5-1"></a><a class="docs-heading-anchor-permalink" href="#Example-5" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+This is an example on an open-loop simulation model. This example gathers
+statistics on the maximum number of tellers needed for no customer waiting.
+&quot;&quot;&quot;
+
+using SimLynx
+
+using Distributions: Exponential, Uniform
+using Random
+
+const N_TELLERS = 2
+tellers = nothing
+
+&quot;Process to generate n customers arriving into the system.&quot;
+@process generator(n::Integer) begin
+    dist = Exponential(4.0)
+    for i = 1:n
+        work(rand(dist))
+        @schedule now customer(i)
+    end
+end
+
+&quot;The ith customer into the system.&quot;
+@process customer(i::Integer) begin
+    @with_resource tellers begin
+        work(rand(Uniform(2.0, 10.0)))
+    end
+end
+
+&quot;Run the simulation for n customers.&quot;
+function run_simulation(n₁::Integer, n₂::Integer)
+    @with_new_simulation begin
+        max_tellers = Variable{Int64}(data=:tally, history=true)
+        for i = 1:n₁
+            @with_new_simulation begin
+                global tellers = Resource(&quot;tellers&quot;)
+                @schedule at 0.0 generator(n₂)
+                start_simulation()
+                sync!(tellers.allocated)
+                set!(max_tellers, tellers.allocated.stats.max)
+            end
+        end
+        print_stats(max_tellers)
+        plot_history(max_tellers, &quot;max_tellers.png&quot;)
+    end
+end
+
+@time run_simulation(10_000, 1_000)
+</code></pre><h2 id="Harbor-Model"><a class="docs-heading-anchor" href="#Harbor-Model">Harbor Model</a><a id="Harbor-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Harbor-Model" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+The Harbor Model is an example simulation that leverages the resume, suspend, and interrupt methods of SimLynx.
+&quot;&quot;&quot;
+using SimLynx
+
+using Distributions: Exponential, Uniform
+using Random
+
+cycle_time = nothing
+
+dock = nothing
+queue = nothing
+
+@process scheduler() begin
+    i = 1
+    while true
+        @schedule in 0.0 ship(i)
+        work(rand(Exponential(4.0 / 3.0)))
+        i += 1
+    end
+end
+
+@process ship(i::Integer) begin
+    arrival_time = current_time()
+    current_process_store(:unloading_time, rand(Uniform(1.0, 2.5)))
+    if !harbor_master(current_process(), :arriving)
+        enqueue!(queue, current_process())
+        suspend()
+    end
+    work(current_process_store(:unloading_time))
+    remove(dock, current_process())
+    set!(cycle_time, current_time() - arrival_time)
+    harbor_master(current_process(), :leaving)
+    return nothing
+end
+
+function harbor_master(ship::Process, action::Symbol)
+    if action == :arriving
+        if length(dock.data) &lt; 2
+            # The dock is not full
+            if isempty(dock)
+                process_store(ship,
+                              :unloading_time,
+                              process_store(ship, :unloading_time) / 2)
+            else
+                other_ship = first(dock)
+                notice = interrupt(other_ship)
+                notice.time = current_time() + 2*notice.time
+                resume(other_ship, notice)
+            end
+            enqueue!(dock, ship)
+            return true
+        else
+            # The dock is full
+            return false
+        end
+    elseif action == :leaving
+        if isempty(queue)
+            if !isempty(dock)
+                other_ship = first(dock)
+                notice = interrupt(other_ship)
+                notice.time = current_time() + 2/notice.time
+                resume(other_ship, notice)
+            end
+        else
+            next_ship = dequeue!(queue)
+            enqueue!(dock, next_ship)
+            resume(next_ship, Notice(current_time(), next_ship))
+        end
+        return true
+    else
+        error(&quot;harbor_master: illegal action value $action&quot;)
+    end
+end
+
+@event stop_sim() begin
+    println(&quot;Harbor Model - report after $(current_time()) - $(cycle_time.stats.n)&quot;)
+    println(&quot;Minimum unload time was $(cycle_time.stats.min)&quot;)
+    println(&quot;Maximum unload time was $(cycle_time.stats.max)&quot;)
+    println(&quot;Average unload time was $(cycle_time.stats.max)&quot;)
+    println(&quot;Average queue of ships waiting to be unloaded was $(mean(queue.n.stats))&quot;)
+    println(&quot;Maximum queue of ships waiting to be unloaded was $(queue.n.stats.max)&quot;)
+    plot_history(queue.n, &quot;harbor-history.png&quot;)
+    stop_simulation()
+end
+
+function run_simulation()
+    @with_new_simulation begin
+        # current_trace!(true)
+        global cycle_time = Variable{Float64}(data=:tally)
+        global dock = FifoQueue{Process}()
+        global queue = FifoQueue{Process}()
+        @schedule at 0.0 scheduler()
+        @schedule at 80.0 stop_sim()
+        start_simulation()
+    end
+end
+
+run_simulation()
+</code></pre><h2 id="Tally-And-Accumulate"><a class="docs-heading-anchor" href="#Tally-And-Accumulate">Tally-And-Accumulate</a><a id="Tally-And-Accumulate-1"></a><a class="docs-heading-anchor-permalink" href="#Tally-And-Accumulate" title="Permalink"></a></h2><pre><code class="language-julia">&quot;&quot;&quot;
+Example usage of the test and accumulate functionality of SimLynx
+&quot;&quot;&quot;
+using SimLynx
+
+tallied = nothing
+accumulated = nothing
+
+@process test_process(value_durations) begin
+    for (value, duration) in value_durations
+        set!(tallied, value)
+        set!(accumulated, value)
+        work(duration)
+    end
+end
+
+function main(value_durations)
+    @with_new_simulation begin
+        global tallied = Variable{Int64}(data=:tally, history=true)
+        global accumulated = Variable{Int64}(0, history=true)
+        @schedule at 0.0 test_process(value_durations)
+        start_simulation()
+        println(&quot;--- Test Tally and Accumulate ---&quot;)
+        println(&quot;--- Tally ---&quot;)
+        println(&quot;N    = $(tallied.stats.n)&quot;)
+        println(&quot;Sum  = $(tallied.stats.sum)&quot;)
+        println(&quot;Mean = $(mean(tallied.stats))&quot;)
+        plot_history(tallied, &quot;tallied.png&quot;, &quot;Tallied History&quot;)
+        println(&quot;--- Accumulate ---&quot;)
+        sync!(accumulated) # Retrieving slots does not sync
+        println(&quot;N    = $(accumulated.stats.n)&quot;)
+        println(&quot;Sum  = $(accumulated.stats.sum)&quot;)
+        println(&quot;Mean = $(mean(accumulated.stats))&quot;)
+        plot_history(accumulated, &quot;accumulated.png&quot;, &quot;Accumulated History&quot;)
+    end
+end
+
+main([(1, 2.0), (2, 1.0), (3, 2.0), (4, 3.0)])
+</code></pre></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 21 October 2020 16:49">Wednesday 21 October 2020</span>. Using Julia version 1.5.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
