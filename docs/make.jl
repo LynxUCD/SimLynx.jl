@@ -17,21 +17,10 @@ function generateExamples()
     write(f, "# Examples")
     write(
         f,
-        "\nSome examples that may prove potentially useful for those using
-`HTTP.jl`. The code for these examples can also be found on Github
+        "\nThe code for these examples can also be found on Github
  in the `docs/examples` folder.",
     )
     for (root, dirs, files) in walkdir(joinpath(@__DIR__, "examples"))
-        #set order of files so simple is first, and Readme examples are last
-        temp = files[1]
-        files[findfirst(isequal("simple_server.jl"), files)] = temp
-        files[1] = "simple_server.jl"
-        temp = files[2]
-        files[findfirst(isequal("cors_server.jl"), files)] = temp
-        files[2] = "cors_server.jl"
-        temp = files[length(files)]
-        files[findfirst(isequal("readme_examples.jl"), files)] = temp
-        files[length(files)] = "readme_examples.jl"
 
         for file in files
             println(file)
