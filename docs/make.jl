@@ -72,6 +72,9 @@ makedocs(;
         canonical="https://LynxUCD.github.io/SimLynx.jl",
         assets=String[],
     ),
+    devbranch = "master",
+    devurl = "dev",
+    versions = ["stable" => "v^", "v#.#", devurl => devurl],
     pages=[
         "Home" => "index.md",
         "Discrete Simulations" => "discrete.md",
