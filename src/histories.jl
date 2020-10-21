@@ -1,6 +1,3 @@
-using Plots
-gr()
-
 abstract type History{T<:Real}
 end
 

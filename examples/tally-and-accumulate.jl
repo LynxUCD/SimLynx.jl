@@ -1,6 +1,6 @@
 # Test Tally and Accumulate
 
-include("simlynx.jl")
+include("../src/simlynx.jl")
 
 tallied = nothing
 accumulated = nothing

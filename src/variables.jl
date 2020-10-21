@@ -1,8 +1,4 @@
 # Variables
-
-include("statistics.jl")
-include("histories.jl")
-
 """
 A variable automatically maintains the history and statistics of its value over
 time.
@@ -51,7 +47,7 @@ mutable struct Variable{T<:Real}
 end
 
 "Return the current value of a variable."
-get(var::Variable) = var.value
+Base.get(var::Variable) = var.value
 
 """
 Synchronize the history and statistics for a variable. This is called before

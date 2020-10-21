@@ -1,5 +1,3 @@
-import Base.isempty
-
 abstract type Queue{T<:Any}
 end
 
@@ -22,7 +20,7 @@ function dequeue!(queue::FifoQueue{T})::T where {T<:Any}
     popfirst!(queue.data)
 end
 
-function isempty(queue::FifoQueue)
+function Base.isempty(queue::FifoQueue)
     return length(queue.data) == 0
 end
 

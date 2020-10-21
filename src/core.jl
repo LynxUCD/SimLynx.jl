@@ -12,14 +12,6 @@
           Activity (which is stubbed), and Process
 =#
 
-import Base: get, schedule
-
-using Printf
-using Plots
-
-
-
-gr() # Use the GR plot backend
 
 """
     @thunk ex
@@ -268,8 +260,8 @@ end
 Schedule the notice on the future event list for the specified simulation,
 which defaults to the current simulation.
 """
-schedule(notice::Notice) = schedule(current_simulation, notice)
-function schedule(sim::Simulation, notice::Notice)
+Base.schedule(notice::Notice) = schedule(current_simulation, notice)
+function Base.schedule(sim::Simulation, notice::Notice)
     event_schedule(notice, sim.future_event_list)
 end
 
@@ -389,7 +381,3 @@ function resume(process::Process, notice::Notice)
     process_state!(process, :active)
     schedule(notice)
 end
-
-include("variables.jl")
-include("queues.jl")
-include("resources.jl")

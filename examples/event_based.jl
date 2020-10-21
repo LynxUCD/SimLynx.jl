@@ -1,7 +1,7 @@
 # event-based.jl
 # Example event-based simulation
 
-include("../src/simlynx.jl")
+using SimLynx
 
 using Distributions
 using Random
