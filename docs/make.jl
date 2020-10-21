@@ -72,8 +72,8 @@ makedocs(;
         canonical="https://LynxUCD.github.io/SimLynx.jl",
         assets=String[],
     ),
-    devbranch = "master",
-    devurl = "dev",
+    # devbranch = "master",
+    # devurl = "dev",
     versions = ["stable" => "v^", "v#.#", devurl => devurl],
     pages=[
         "Home" => "index.md",
@@ -81,6 +81,7 @@ makedocs(;
         "Continuous Simulations" => "continuous.md",
         "Examples" => "examples.md",
     ],
+    push_preview=true,
 )
 
 deploydocs(;
