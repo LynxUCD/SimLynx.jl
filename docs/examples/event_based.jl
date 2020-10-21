@@ -1,6 +1,22 @@
-# event-based.jl
-# Example event-based simulation
+"""
+This is a simple process-based discrete-event simulation of an N teller, single
+queue bank.
 
+There are two (2) processes:
+    generator(n::Integer)
+      Generates n arrivals into the system with exponentially distributed
+      inter-arrival time with a mean of 4.0.
+    customer(i::Integer)
+      The process representing the ith customer in the system. Each customer
+      acquires a teller and works a uniformly distributed time between 2.0 and
+      10.0. It then releases the teller and exits.
+
+There is a single resource, tellers, that represents the tellers in the bank.
+The number if tellers is set by the N_TELLERS global variable.
+
+Once the simulation runs, statistics are printed for the tellers allocation and
+queue length as well as a plot of the queue length over time.
+"""
 using SimLynx
 
 using Distributions

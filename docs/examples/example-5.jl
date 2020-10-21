@@ -1,5 +1,7 @@
-# example-4.jl
-# Example nested simulation models with data collection
+"""
+This is an example on an open-loop simulation model. This example gathers
+statistics on the maximum number of tellers needed for no customer waiting.
+"""
 
 using SimLynx
 
@@ -28,17 +30,18 @@ end
 "Run the simulation for n customers."
 function run_simulation(n₁::Integer, n₂::Integer)
     @with_new_simulation begin
-        avg_wait = Variable{Float64}(data=:tally, history=true)
+        max_tellers = Variable{Int64}(data=:tally, history=true)
         for i = 1:n₁
             @with_new_simulation begin
-                global tellers = Resource(N_TELLERS, "tellers")
+                global tellers = Resource("tellers")
                 @schedule at 0.0 generator(n₂)
                 start_simulation()
-                set!(avg_wait, mean(tellers.wait.stats))
+                sync!(tellers.allocated)
+                set!(max_tellers, tellers.allocated.stats.max)
             end
         end
-        print_stats(avg_wait)
-        plot_history(avg_wait, "avg-weight.png")
+        print_stats(max_tellers)
+        plot_history(max_tellers, "max_tellers.png")
     end
 end
 

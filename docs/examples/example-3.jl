@@ -1,11 +1,8 @@
-# example-3.jl
-# Example nested simulation models
-
-#=
+"""
 This example demonstrates nested simulations, which is used to run multiple
 simulation runs to gather statistics (e.g., distributions) across the runs. This
 example just executes the multiple runs without gathering additional data.
-=#
+"""
 
 using SimLynx
 

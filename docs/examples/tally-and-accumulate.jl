@@ -1,5 +1,6 @@
-# Test Tally and Accumulate
-
+"""
+Example usage of the test and accumulate functionality of SimLynx
+"""
 using SimLynx
 
 tallied = nothing

@@ -1,4 +1,6 @@
-
+"""
+The Harbor Model is an example simulation that leverages the resume, suspend, and interrupt methods of SimLynx.
+"""
 using SimLynx
 
 using Distributions: Exponential, Uniform

@@ -1,7 +1,4 @@
-# example-2.jl
-# Example simulation model
-
-#=
+"""
 Like example-1.jl but using @event instead of @process for the generate
 functionality. Also uses the (experimental) trace functionality.
 
@@ -29,7 +26,7 @@ Stacktrace:
  [5] include_string(::Function, ::Module, ::String, ::String) at .\loading.jl:1088
 in expression starting at C:\Users\doug\Develop\SimLynx\example-2.jl:49
 --- (1)
-=#
+"""
 
 using SimLynx
 
