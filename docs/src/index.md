@@ -13,11 +13,11 @@ CurrentModule = SimLynx
 Modules = [SimLynx]
 ```
 
-```@contents
+<!-- ```@contents
 Pages = [
 "index.md",
 "discrete.md",
 "continuous.md",
 "examples.md"
 ]
-```
+``` -->
