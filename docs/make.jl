@@ -73,7 +73,7 @@ makedocs(;
         assets=String[],
     ),
     # devbranch = "master",
-    # devurl = "dev",
+    devurl = "dev",
     versions = ["stable" => "v^", "v#.#", devurl => devurl],
     pages=[
         "Home" => "index.md",
