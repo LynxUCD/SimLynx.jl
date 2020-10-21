@@ -12,3 +12,7 @@ CurrentModule = SimLynx
 ```@autodocs
 Modules = [SimLynx]
 ```
+
+<!-- ```@contents
+Pages = ["discrete.md", "continuous.md", "examples/index.md"]
+``` -->
