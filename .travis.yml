@@ -8,7 +8,7 @@ julia:
 os:
   - linux
   - osx
-  - windows
+  # - windows
 arch:
   - x64
 cache:
