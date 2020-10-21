@@ -17,9 +17,11 @@ function generateExamples()
     write(f, "# Examples")
     write(
         f,
-        "\nThe code for these examples can also be found on Github
+        "\nBelow are some useful examples to give you an idea of how this package can be leveraged. The code for these examples can also be found on Github
  in the `docs/examples` folder.",
     )
+    write(f, "---")
+    write(f, "\n")
     for (root, dirs, files) in walkdir(joinpath(@__DIR__, "examples"))
 
         for file in files
@@ -74,8 +76,8 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Discrete Simulations" => "discrete.md",
-        "Continuous Simulations" => "index.md",
-        "Examples" => "examples/index.md",
+        "Continuous Simulations" => "continuous.md",
+        "Examples" => "examples.md",
     ],
 )
 
