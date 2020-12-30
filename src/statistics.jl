@@ -13,7 +13,9 @@ mutable struct AccumulatedStats{T<:Real} <: Stats{T}
         new(value, value, 0.0, 0.0, 0.0)
 end
 
-"Accumulate running statistics over a time duration."
+"""
+    update!(stats::AccumulatedStats{T}, x::T, t::Float64) where {T<:Real}
+Accumulate running statistics over a time duration."""
 function update!(stats::AccumulatedStats{T}, x::T, t::Float64) where {T<:Real}
     if t < 0.0
         throw(ArgumentError("weight t cannot be negative, got $t"))
@@ -43,7 +45,9 @@ mutable struct TalliedStats{T<:Real} <: Stats{T}
         new(value, value, 1, value, value^2)
 end
 
-"Tally running statistics."
+"""
+    update!(stats::TalliedStats{T}, x::T) where {T<:Real}
+Tally running statistics."""
 function update!(stats::TalliedStats{T}, x::T) where {T<:Real}
     if stats.n > 0
         stats.min = min(x, stats.min)
@@ -89,4 +93,3 @@ function print_stats(stats::Stats;
     println("  stddev = $(stats.stddev)")
     flush(stdout)
 end
-
