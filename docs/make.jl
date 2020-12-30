@@ -74,7 +74,7 @@ makedocs(;
     ),
     # devbranch = "master",
     # devurl = "dev",
-    versions = ["stable" => "v^", "v#.#"],
+    versions = ["stable" => "v^", "v#.#", "dev" => "dev"],
     pages=[
         "Home" => "index.md",
         "Discrete Simulations" => "discrete.md",
