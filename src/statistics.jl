@@ -1,5 +1,3 @@
-# module Statistics
-
 abstract type Stats{T<:Real}
 end
 
@@ -65,31 +63,30 @@ mean_square(stats::Stats) = stats.sum_squares / stats.n
 variance(stats::Stats) = mean_square(stats) - mean(stats)^2
 stddev(stats::Stats) = sqrt(variance(stats))
 
+function Base.getproperty(stats::Stats, name::Symbol)
+    if name === :mean
+        return mean(stats)
+    elseif name === :variance
+        return variance(stats)
+    elseif name === :stddev
+        return stddev(stats)
+   else # fallback to getfield
+       return getfield(stats, name)
+   end
+end
+
+
 "Print the accumulates statistics for a variable."
-function print_stats(stats::Stats, title = "Statistics")
+function print_stats(stats::Stats;
+                     format="%f",
+                     title="Statistics")
     println(title)
     println("     min = $(stats.min)")
     println("     max = $(stats.max)")
     println("       n = $(stats.n)")
-    println("    mean = $(mean(stats))")
-    println("variance = $(variance(stats))")
-    println("  stddev = $(stddev(stats))")
+    println("    mean = $(stats.mean)")
+    println("variance = $(stats.variance)")
+    println("  stddev = $(stats.stddev)")
+    flush(stdout)
 end
 
-#=
-s = AccumulatedStats{Int64}()
-update!(s, 1, 2.0)
-update!(s, 2, 1.0)
-update!(s, 3, 2.0)
-update!(s, 4, 3.0)
-print_stats(s, "Accumulated Statistics")
-
-t = TalliedStats{Int64}()
-update!(t, 1)
-update!(t, 2)
-update!(t, 3)
-update!(t, 4)
-print_stats(t, "Tallied Statistics")
-=#
-
-# end

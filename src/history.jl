@@ -21,8 +21,11 @@ function update!(hist::AccumulatedHistory{T}, x::T, t::Float64) where {T<:Real}
     return nothing
 end
 
-function plot_history(hist::AccumulatedHistory, file::String, title::String = "History")
-    println("Writing $title plot to file \"$file\"")
+function plot_history(hist::AccumulatedHistory;
+                      file::Union{String, Nothing} = nothing,
+                      title::String = "History")
+    println("Displaying $title plot")
+    flush(stdout)
     t = 0.0
     x = []
     y = []
@@ -34,8 +37,11 @@ function plot_history(hist::AccumulatedHistory, file::String, title::String = "H
     p = plot(x,  y, title = title,
              xlabel = "Time", ylabel = "Value",
              legend = false)
-    savefig(p, file)
     display(p)
+    if !isnothing(file)
+        println("Writing $title plot to file \"$file\"")
+        savefig(p, file)
+    end
     return nothing
 end
 
@@ -50,7 +56,9 @@ function update!(hist::TalliedHistory{T}, x::T) where {T<:Real}
     return nothing
 end
 
-function plot_histogram(hist::TalliedHistory{T}, file::String, title::String="Histogram") where {T<:Integer}
+function plot_history(hist::TalliedHistory{T};
+                      file::Union{String, Nothing}=nothing,
+                      title::String="Histogram") where {T<:Integer}
     low, high = extrema(hist.data) # minimum and maximum data values
     n = high-low+1 # range of data values
     histo = zeros(Int64,n) # empty histogram
@@ -62,41 +70,30 @@ function plot_histogram(hist::TalliedHistory{T}, file::String, title::String="Hi
     p = bar(range(low, stop=high),histo, title=title,
             xlabel="Value", ylabel="Count",
             legend=false)
+    println("Displaying $title plot")
+    flush(stdout)
     display(p)
-    println("Writing $title plot to file \"$file\"")
-    savefig(p, file)
+    if !isnothing(file)
+        println("Writing $title plot to file \"$file\"")
+        savefig(p, file)
+    end
     return nothing
 end
 
-function plot_histogram(hist::TalliedHistory{T}, file::String, title::String="Histogram") where {T<:Real}
+function plot_history(hist::TalliedHistory{T};
+                      file::Union{String, Nothing}=nothing,
+                      title::String="Histogram") where {T<:Real}
     # Build the histogram
     p = histogram(hist.data, bins=100, title=title,
                   xlabel="Value", ylabel="Count",
                   legend=false)
+    println("Displaying $title plot")
+    flush(stdout)
     display(p)
-    println("Writing $title plot to file \"$file\"")
-    savefig(p, file)
+    if !isnothing(file)
+        println("Writing $title plot to file \"$file\"")
+        savefig(p, file)
+    end
     return nothing
 end
 
-#=
-h = AccumulatedHistory{Int64}(0)
-update!(h, 1, 2.0)
-update!(h, 2, 1.0)
-update!(h, 3, 2.0)
-update!(h, 4, 3.0)
-plot_history(h, "accumulated.png")
-
-d = TalliedHistory{Int64}()
-update!(d, 1)
-update!(d, 2)
-update!(d, 3)
-update!(d, 4)
-plot_histogram(d, "discrete.png")
-
-c = TalliedHistory{Float64}()
-for i = 1:10_000
-    update!(c, rand(Float64)*100.0)
-end
-plot_histogram(c, "continuous.png")
-=#

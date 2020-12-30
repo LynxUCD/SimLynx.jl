@@ -1,4 +1,4 @@
-# module Resources
+# resource.jl
 
 # Resources
 # This is a simple resource implementation that only allows unit allocations
@@ -48,7 +48,7 @@ Base.show(io::IO, res::Resource) =
 "Allocate a unit of the resource to a process."
 function allocate(resource::Resource, process::Process)
     if current_trace()
-        @printf("%9.3f: %s, acquired %s\n", current_time(),
+        @printf("%9.3f: %s acquired %s\n", current_time(),
                 process, resource)
     end
     if resource.available.value < typemax(Int64)
@@ -60,7 +60,7 @@ end
 "Deallocate a unit of the resource from a process."
 function deallocate(resource::Resource, process::Process)
     if current_trace()
-        @printf("%9.3f: %s, released %s\n", current_time(),
+        @printf("%9.3f: %s released %s\n", current_time(),
                 process, resource)
     end
     if resource.available.value < typemax(Int64)
@@ -76,10 +76,10 @@ Request a unit of the resource. If a unit of the resource is not available, then
 queue the request.
 """
 function request(resource::Resource)
-    process = current_notice().element
-    if get(resource.available) > 0
+    process = current_process()
+    if resource.available.value > 0
         allocate(resource, process)
-        set!(resource.wait, 0.0)
+        resource.wait.value = 0.0
     else
         process_state!(current_simulation.notice.element, :delayed)
         push!(resource.queue, Allocation(current_time(), process))
@@ -102,7 +102,7 @@ function release(resource::Resource)
         queued = popfirst!(resource.queue)
         wait_time = current_time() - queued.time
         if wait_time > 0.0
-            set!(resource.wait, wait_time)
+            resource.wait.value = wait_time
         end
         decrement!(resource.queue_length, 1)
         allocate(resource, queued.process)
@@ -128,4 +128,3 @@ macro with_resource(resource, body)
     end
 end
 
-# end

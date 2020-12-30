@@ -1,37 +1,36 @@
-"""
-Example usage of the test and accumulate functionality of SimLynx
-"""
+# Tally and Accumulate
+
 using SimLynx
+SimLynx.greet()
 
 tallied = nothing
 accumulated = nothing
 
 @process test_process(value_durations) begin
     for (value, duration) in value_durations
-        set!(tallied, value)
-        set!(accumulated, value)
+        tallied.value = value
+        accumulated.value = value
         work(duration)
     end
 end
 
 function main(value_durations)
-    @with_new_simulation begin
+    println("--- Test Tally and Accumulate ---")
+    @simulation begin
+        # Create tallied and accumulated variables
         global tallied = Variable{Int64}(data=:tally, history=true)
         global accumulated = Variable{Int64}(0, history=true)
+        # Schedule the test process and start the simulation
         @schedule at 0.0 test_process(value_durations)
         start_simulation()
-        println("--- Test Tally and Accumulate ---")
+        # Print and plot the tallied results
         println("--- Tally ---")
-        println("N    = $(tallied.stats.n)")
-        println("Sum  = $(tallied.stats.sum)")
-        println("Mean = $(mean(tallied.stats))")
-        plot_history(tallied, "tallied.png", "Tallied History")
+        print_stats(tallied, title="Tallied Statistics")
+        plot_history(tallied, title="Tallied History")
+        # Print and plot the accumulated results
         println("--- Accumulate ---")
-        sync!(accumulated) # Retrieving slots does not sync
-        println("N    = $(accumulated.stats.n)")
-        println("Sum  = $(accumulated.stats.sum)")
-        println("Mean = $(mean(accumulated.stats))")
-        plot_history(accumulated, "accumulated.png", "Accumulated History")
+        print_stats(accumulated, title="Accumulated Statistics")
+        plot_history(accumulated, title="Accumulated History")
     end
 end
 
