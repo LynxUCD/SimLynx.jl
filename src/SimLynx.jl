@@ -9,7 +9,7 @@ module SimLynx
 
 import Base: wait
 
-using Plots
+using Plots; gr()
 using Printf
 using MacroTools
 
