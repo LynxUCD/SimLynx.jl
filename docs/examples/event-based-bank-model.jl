@@ -12,6 +12,14 @@ const MEAN_INTERARRIVAL_TIME = 4.0
 const MIN_SERVICE_TIME = 2.0
 const MAX_SERVICE_TIME = 10.0
 
+"""
+    Customer
+
+Represents a customer in the system.
+
+# Fields
+- `id::Int64`: the id of the customer
+"""
 struct Customer
     id::Int64
     Customer(id::Int64) = new(id)
@@ -20,6 +28,15 @@ end
 Base.show(io::IO, customer::Customer) =
     print(io, "Customer($(customer.id))")
 
+"""
+    Teller
+
+Represents a teller.
+
+# Fields
+- `id::Int64`: the id of the customer
+- `serving::Union{Customer, Nothing}`: the customer being served or nothing
+"""
 mutable struct Teller
     id::Int64
     serving::Union{Customer, Nothing}
@@ -32,6 +49,7 @@ Base.show(io::IO, teller::Teller) =
 tellers = nothing
 teller_queue = nothing
 
+"Return an available teller or nothing if all tellers are busy."
 function available_teller()::Union{Teller, Nothing}
     for teller in tellers
         if isnothing(teller.serving)
@@ -43,6 +61,7 @@ end
 
 generator_dist = Exponential(MEAN_INTERARRIVAL_TIME)
 
+"Generate the ith customer and schedule the next arrival."
 @event generate(i:: Integer, n::Integer) begin
     @schedule now arrival(Customer(i))
     if i < n
@@ -50,6 +69,7 @@ generator_dist = Exponential(MEAN_INTERARRIVAL_TIME)
     end
 end
 
+"The ith customer arrival."
 @event arrival(customer::Customer) begin
     teller = available_teller()
     if isnothing(teller)
@@ -59,12 +79,14 @@ end
     end
 end
 
+"Teller begins servicing the ith customer."
 @event service(teller::Teller, customer::Customer) begin
     dist = Uniform(MIN_SERVICE_TIME, MAX_SERVICE_TIME)
     teller.serving = customer
     @schedule in rand(dist) departure(teller, customer)
 end
 
+"Teller ends servicing the ith customer who immediately leaves."
 @event departure(teller::Teller, customer::Customer) begin
     if isempty(teller_queue)
         teller.serving = nothing
@@ -75,6 +97,7 @@ end
     end
 end
 
+"Run the simulation."
 function run_simulation(n::Integer)
     @assert n > 0
     println("SimLynx.jl Event-Based Discrete-Event Simulation Example")
