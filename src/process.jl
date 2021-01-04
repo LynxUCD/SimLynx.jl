@@ -1,4 +1,6 @@
-# process.jl
+# SimLynx/src/process.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
 """
     Acceptor
@@ -93,20 +95,18 @@ Define a simulation process with the specified signature and implemented by the
 given body.
 """
 macro process(sig, body)
-    if !(isa(sig, Expr) && sig.head === :call)
+    @capture(sig, f_Symbol(xs__)) ||
         throw(ArgumentError("the first argument must be a signature, " *
                             "given $sig"))
-    end
-    if !isa(body, Expr)
+    @capture(body, begin exprs__ end) ||
         throw(ArgumentError("the second argument must be a body, " *
                             "given $body"))
-    end
-    args = [isa(sig, Symbol) ? sig : sig.args[1] for sig in sig.args[2:end]]
+    # Extract the argument identifiers
+    args = [isa(arg, Symbol) ? arg : arg.args[1] for arg in xs]
     quote
         $(esc(sig)) =
-            let _argvals = [$(esc.(args)...)]
-                Process(string($(esc(sig.args[1]))) * "(" *
-                               join(string.(_argvals), ", ") * ")",
+            let _argvals = [$(esc.(args)...)] # Build array of argument values
+                Process(string($(esc(f))) * "(" * join(string.(_argvals), ", ") * ")",
                         @task begin
                             try
                                 $(esc(body))
@@ -120,4 +120,3 @@ macro process(sig, body)
             end
     end
 end
-

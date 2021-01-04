@@ -1,4 +1,7 @@
-# resource.jl
+# SimLynx/src/resource.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
+
 
 # Resources
 # This is a simple resource implementation that only allows unit allocations
@@ -127,4 +130,3 @@ macro with_resource(resource, body)
         end
     end
 end
-

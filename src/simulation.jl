@@ -1,4 +1,6 @@
 # simulation.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
 """
     Simulation
@@ -96,6 +98,8 @@ macro simulation(body)
             current_simulation = Simulation()
             try
                 $(esc(body))
+            catch e
+                showerror(stdout, e, catch_backtrace())
             finally
                 current_simulation = old_simulation
             end
@@ -119,6 +123,8 @@ macro simulation(sim, body)
             current_simulation = sim
             try
                 $(esc(body))
+            catch e
+                showerror(stdout, e, catch_backtrace())
             finally
                 current_simulation = old_simulation
             end
@@ -126,4 +132,3 @@ macro simulation(sim, body)
         wait(control_task)
     end
 end
-

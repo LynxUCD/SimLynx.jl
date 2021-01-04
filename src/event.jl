@@ -1,4 +1,6 @@
-# event.jl
+# SimLynx/src/event.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
 """
     Event
@@ -27,22 +29,19 @@ Define a simulation event with the specified signature and implemented by the
 given body.
 """
 macro event(sig, body)
-    if !(isa(sig, Expr) && sig.head === :call)
+    @capture(sig, f_Symbol(xs__)) ||
         throw(ArgumentError("the first argument must be a signature, " *
                             "given $sig"))
-    end
-    if !isa(body, Expr)
+    @capture(body, begin exprs__ end) ||
         throw(ArgumentError("the second argument must be a body, " *
                             "given $body"))
-    end
-    args = [isa(sig, Symbol) ? sig : sig.args[1] for sig in sig.args[2:end]]
+    # Extract the argument identifiers
+    args = [isa(arg, Symbol) ? arg : arg.args[1] for arg in xs]
     quote
         $(esc(sig)) =
-            let _argvals = [$(esc.(args)...)]
-                Event(string($(esc(sig.args[1]))) * "(" *
-                             join(string.(_argvals), ", ") * ")",
+            let _argvals = [$(esc.(args)...)] # Build array of argument values
+                Event(string($(esc(f))) * "(" * join(string.(_argvals), ", ") * ")",
                       @thunk $(esc(body)))
             end
     end
 end
-

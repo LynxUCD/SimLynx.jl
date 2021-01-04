@@ -1,4 +1,6 @@
-# control.jl
+# SimLynx/src/control.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
 """
     event_schedule(notice::Notice, event_list::Array{Notice, 1})
@@ -21,17 +23,33 @@ which defaults to the current simulation.
 """
 schedule(notice::Notice) = schedule(current_simulation, notice)
 function schedule(sim::Simulation, notice::Notice)
+    notice.time >= sim.time ||
+        error("event time ($(notice.time)) less than simulation time ($(sim.time))")
     event_schedule(notice, sim.future_event_list)
 end
 
+"""
+    schedule_now(notice::Notice)
+    schedule_now(sim::Simulation, notice::Notice)
+
+Schedule the notice on the now event list for the specified simulation, which
+defaults to the current simulation. The notice is added at the end of the list.
+"""
 schedule_now(notice::Notice) = schedule_now(current_simulation, notice)
 function schedule_now(sim::Simulation, notice::Notice)
-    # event_schedule(notice, sim.now_event_list)
     notice.time = current_time()
     push!(sim.now_event_list, notice)
     return notice.element
 end
 
+"""
+    schedule_immediate(notice::Notice)
+    schedule_immediate(sim::Simulation, notice::Notice)
+
+Schedule the notice on the now event list for the specified simulation, which
+defaults to the current simulation. The notice is added at the beginning of the
+list.
+"""
 schedule_immediate(notice::Notice) = schedule_immediate(current_simulation, notice)
 function schedule_immediate(sim::Simulation, notice::Notice)
     notice.time = current_time()
@@ -41,15 +59,14 @@ end
 
 """
     @schedule now <expr>
-    @schedule at <time> <expr>
-    @schedule in <delta> <expr>
+    @schedule immediate <expr>
 
-Schedule an event to occur in the future. The create an event and adds it to
-the future event list at the specified time.
+Schedule an event to occur now. This create an event notice and adds it to the
+now event list. The keywork :immediate will add the notice at the front of the
+now even list and :now will add the end.
 """
 macro schedule(sym::Symbol, expr)
-    if sym == :now
-        # return :(schedule_now(Notice(current_time(), $(esc(expr)))))
+    if sym === :now
         return quote
             let element = $(esc(expr))
                 if isa(element, Process)
@@ -60,8 +77,7 @@ macro schedule(sym::Symbol, expr)
             end
         end
     end
-    if sym == :immediate
-        # return :(schedule_now(Notice(current_time(), $(esc(expr)))))
+    if sym === :immediate
         return quote
             let element = $(esc(expr))
                 if isa(element, Process)
@@ -75,9 +91,14 @@ macro schedule(sym::Symbol, expr)
     throw(ArgumentError("Expected 'now' or 'immediate' as @argument keyword, given: $sym"))
 end
 
+"""
+    @schedule at <time> <expr>
+    @schedule in <delta> <expr>
+
+Schedule an event to occur in the future.
+"""
 macro schedule(sym::Symbol, arg, expr)
-    if sym == :at
-        # return :(schedule(Notice($(esc(arg)), $(esc(expr)))))
+    if sym === :at
         return quote
             let element = $(esc(expr))
                 if isa(element, Process)
@@ -89,9 +110,8 @@ macro schedule(sym::Symbol, arg, expr)
             end
         end
     end
-    if sym == :in
-        # return :(schedule(Notice(current_time() + $(esc(arg)), $(esc(expr)))))
-        return quote
+    if sym === :in
+         return quote
             let element = $(esc(expr))
                 if isa(element, Process)
                     element.notice.time = current_time() + $(esc(arg))
@@ -108,12 +128,13 @@ end
 # Simulation control routines
 
 """
+    wait(delay::Real)
     work(delay::Real)
 
 Simulate the delay while work is being done.  Add an event to return to this
 task in the future to the event list.
 """
-function work(delay::Real)
+function wait_or_work(delay::Real)
     if isnothing(current_process())
         Error("call to work must be within a process")
     end
@@ -121,6 +142,8 @@ function work(delay::Real)
     @schedule in delay current_process()
     yieldto(control_task())
 end
+wait(delay::Real) = wait_or_work(delay)
+work(delay::Real) = wait_or_work(delay)
 
 """
     start_simulation()
@@ -167,10 +190,12 @@ function start_simulation()
     current_simulation.running = false
 end
 
+"Stop the execution of the current simulation."
 function stop_simulation()
     current_simulation.running = false
 end
 
+# Advanced process control
 
 "Suspend the execution of the current process."
 function suspend()
@@ -194,4 +219,3 @@ function resume(process::Process, notice::Notice)
     process_state!(process, :active)
     schedule(notice)
 end
-

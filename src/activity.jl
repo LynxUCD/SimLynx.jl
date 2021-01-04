@@ -1,4 +1,6 @@
-# activity.jl
+# SimLynx/src/activity.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
 # This is a placeholder for the future definition of an activity.
 

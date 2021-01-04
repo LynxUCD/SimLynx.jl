@@ -1,12 +1,17 @@
-# SimLynx.jl
+# SimLynx/src/SimLynx.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
 __precompile__()
 
 "A Hybrid Simulation Engine and Language in Julia"
 module SimLynx
 
+import Base: wait
+
 using Plots
 using Printf
+using MacroTools
 
 # Application Program Interface (API)
 #
@@ -41,6 +46,7 @@ export @simulation
 
 # control.jl
 export @schedule
+export wait
 export work
 export start_simulation
 export stop_simulation
@@ -73,6 +79,7 @@ export release
 export @with_resource
 
 # SimLynx.jl (this file)
+export greet
 export seed
 
 "Print the SimLynx greeting."

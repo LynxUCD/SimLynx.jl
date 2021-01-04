@@ -1,4 +1,6 @@
-# notice.jl
+# SimLynx/src/notice.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
 """
     Notice
@@ -21,4 +23,3 @@ end
 "Ascending order function for event lists."
 islessorequal(notice_1::Notice, notice_2::Notice) =
     notice_1.time <= notice_2.time
-

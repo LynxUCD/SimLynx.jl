@@ -1,6 +1,26 @@
-abstract type Stats{T<:Real}
-end
+# SimLynx/src/statistics.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
+abstract type Stats{T<:Real} end
+
+# Accumulated Statistics
+
+"""
+    AccumulatedStats{T<:Real} <: Stats{T}
+
+    AccumulatedStats()
+    AccumulatedStats(value::T)
+
+Accumulates statistics of values over time.
+
+# Fields
+- `min::T` - the minimum value observed (or zero(T))
+- `max::T` - the maximum value observed (or zero(T))
+- `n::Float64` - the weighted number of values (i.e., total time)
+- `sum::Float64` - the weighted sum of the values
+- `sum_squares::Float64` - the weighted sum of squares of the values
+"""
 mutable struct AccumulatedStats{T<:Real} <: Stats{T}
     min::T
     max::T
@@ -13,9 +33,7 @@ mutable struct AccumulatedStats{T<:Real} <: Stats{T}
         new(value, value, 0.0, 0.0, 0.0)
 end
 
-"""
-    update!(stats::AccumulatedStats{T}, x::T, t::Float64) where {T<:Real}
-Accumulate running statistics over a time duration."""
+"Accumulate running statistics over a time."
 function update!(stats::AccumulatedStats{T}, x::T, t::Float64) where {T<:Real}
     if t < 0.0
         throw(ArgumentError("weight t cannot be negative, got $t"))
@@ -33,6 +51,23 @@ function update!(stats::AccumulatedStats{T}, x::T, t::Float64) where {T<:Real}
     return nothing
 end
 
+# Tallied Statistics
+
+"""
+    TalliedStats{T<:Real} <: Stats{T}
+
+    TalliedStats()
+    TalliedStats(value::T)
+
+Tally statistics of values.
+
+# Fields
+- `min::T` - the minimum value observed (or zero(T))
+- `max::T` - the maximum value observed (or zero(T))
+- `n::Float64` - the number of values
+- `sum::Float64` - the sum of the values
+- `sum_squares::Float64` - the sum of squares of the values
+"""
 mutable struct TalliedStats{T<:Real} <: Stats{T}
     min::T
     max::T
@@ -45,9 +80,7 @@ mutable struct TalliedStats{T<:Real} <: Stats{T}
         new(value, value, 1, value, value^2)
 end
 
-"""
-    update!(stats::TalliedStats{T}, x::T) where {T<:Real}
-Tally running statistics."""
+"Tally running statistics."
 function update!(stats::TalliedStats{T}, x::T) where {T<:Real}
     if stats.n > 0
         stats.min = min(x, stats.min)
@@ -62,11 +95,14 @@ function update!(stats::TalliedStats{T}, x::T) where {T<:Real}
     return nothing
 end
 
+# Stats Operations
+
 mean(stats::Stats) = stats.sum / stats.n
 mean_square(stats::Stats) = stats.sum_squares / stats.n
 variance(stats::Stats) = mean_square(stats) - mean(stats)^2
 stddev(stats::Stats) = sqrt(variance(stats))
 
+"Overloaded statistics properties for mean, variance, and stddev."
 function Base.getproperty(stats::Stats, name::Symbol)
     if name === :mean
         return mean(stats)
@@ -79,8 +115,9 @@ function Base.getproperty(stats::Stats, name::Symbol)
    end
 end
 
-
-"Print the accumulates statistics for a variable."
+"""
+Print the accumulated statistics for a variable with optional format and
+title."""
 function print_stats(stats::Stats;
                      format="%f",
                      title="Statistics")

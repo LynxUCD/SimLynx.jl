@@ -1,5 +1,18 @@
-# rendezvous.jl
+# SimLynx/src/rendezvous.jl
+# Licensed under the MIT License. See LICENSE.md file in the project root for
+# full license information.
 
+"""
+    Message <: AbstractMessage
+
+Represents a message being send to a process.
+
+# Fields
+- `time::Float64` - the time the message was sent
+- `caller::Process` - the process sending the message
+- `name::Symbol` - the type of message being send
+- `args::Array{Any, 1}` - the arguments for the message
+"""
 struct Message <: AbstractMessage
     time::Float64
     caller::Process
@@ -7,7 +20,11 @@ struct Message <: AbstractMessage
     args::Array{Any, 1}
 end
 
-"Check for interprocess communications rendezvous."
+"""
+Check for interprocess communications rendezvous. Returns the message and
+acceptor and a Boolean indicating whether a rendezvous will occur. The first
+two returned values are nothing of the Boolean is false.
+"""
 function rendezvous(process::Process)
     for (i, message) in enumerate(process.queue)
         for acceptor in process.acceptors
@@ -20,20 +37,15 @@ function rendezvous(process::Process)
     return (nothing, nothing, false)
 end
 
-macro accept(caller, sig)
-    if !isa(caller, Symbol)
-        throw(ArgumentError("first argument must be a symbol, " *
-                            "given $caller"))
-    end
-    if !(isa(sig, Expr) &&
-             sig.head === :call &&
-             length(sig.args) > 0 &&
-             isa(sig.args[1], Symbol))
+"""
+    accept <caller> <signature>
+"""
+macro accept(caller::Symbol, sig)
+   @capture(sig, f_Symbol(xs__)) ||
         throw(ArgumentError("second argument must be a signature, " *
                             "given $sig"))
-    end
     quote
-        current_process().acceptors = [Acceptor(Symbol($(esc(sig.args[1]))),
+        current_process().acceptors = [Acceptor(Symbol($(esc(f))),
                                                 nothing)]
         while true
             message, acceptor, accepted = rendezvous(current_process())
@@ -48,22 +60,14 @@ macro accept(caller, sig)
     end
 end
 
-macro accept(caller, sig, body)
-    if !isa(caller, Symbol)
-        throw(ArgumentError("first argument must be a symbol, " *
-                            "given $caller"))
-    end
-    if !(isa(sig, Expr) &&
-             sig.head === :call &&
-             length(sig.args) > 0 &&
-             isa(sig.args[1], Symbol))
+macro accept(caller::Symbol, sig, body)
+    @capture(sig, f_Symbol(xs__)) ||
         throw(ArgumentError("second argument must be a signature, " *
                             "given $sig"))
-    end
     proc = Expr(:->, sig.args[2], body)
     quote
         current_process().acceptors =
-            [Acceptor(Symbol($(esc(sig.args[1]))),
+            [Acceptor(Symbol($(esc(f))),
                       $(esc(proc)))]
         while true
             message, acceptor, accepted = rendezvous(current_process())
@@ -112,4 +116,3 @@ macro send(callee, sig)
         end
     end
 end
-
