@@ -1,6 +1,6 @@
 ---
 title: 'Domain Specific Language for Discrete & Continuous Simulations with SimLynx.jl'
-tags:
+keywords:
   - Julia
   - Simulation
   - Domain Specific Language
