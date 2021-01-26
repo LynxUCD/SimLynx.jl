@@ -1,0 +1,26 @@
+---
+title: 'Domain Specific Language for Discrete & Continuous Simulations with SimLynx.jl'
+tags:
+  - Julia
+  - Simulation
+  - Domain Specific Language
+  - DSL
+  - Discrete Simulation
+  - Continuous Simulation
+authors:
+  - name: Doug Williams. Anthony Dupont. Trystan Kaes^[Custom footnotes for e.g. denoting who the corresponding author is can be included like this.]
+    orcid: 0000-0003-0872-7098
+    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+  - name: Author Without ORCID
+    affiliation: 2
+  - name: Author with no affiliation
+    affiliation: 3
+affiliations:
+ - name: Lyman Spitzer, Jr. Fellow, Princeton University
+   index: 1
+ - name: Institution Name
+   index: 2
+ - name: Independent Researcher
+   index: 3
+date: 13 August 2017
+bibliography: paper.bib
