@@ -21,9 +21,7 @@ Base.show(io::IO, event::Event) =
     print(io, "Event $(event.name)")
 
 """
-    @event <sig> begin
-        <body>
-    end
+    @event <sig> <body>
 
 Define a simulation event with the specified signature and implemented by the
 given body.
@@ -32,9 +30,11 @@ macro event(sig, body)
     @capture(sig, f_Symbol(xs__)) ||
         throw(ArgumentError("the first argument must be a signature, " *
                             "given $sig"))
-    @capture(body, begin exprs__ end) ||
-        throw(ArgumentError("the second argument must be a body, " *
-                            "given $body"))
+
+    # XXX: This is ineffective. @event foo() 4 is valid.
+    # @capture(body, begin exprs__ end) ||
+    #     throw(ArgumentError("the second argument must be a body, " *
+    #                         "given $body"))
     # Extract the argument identifiers
     args = [isa(arg, Symbol) ? arg : arg.args[1] for arg in xs]
     quote

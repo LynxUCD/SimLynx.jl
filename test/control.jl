@@ -25,3 +25,5 @@
     @test got == want # Tests complete functionality of control.jl
 
 end
+
+# XXX: Test @schedule return

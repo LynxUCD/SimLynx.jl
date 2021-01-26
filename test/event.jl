@@ -6,20 +6,22 @@
 
     @test test_process().name == "test_process()"
     @test test_process().proc() == "We did it!"
+    @test typeof(test_process()) === Event
 
     @testset "Event Errors" begin
         try
             include("resources/event/sig_error.jl")
         catch e
-            @test e.error.error == ArgumentError("the first argument must be a signature, given foo")
+            @test typeof(e.error.error) === ArgumentError
         end
-
-        try
-            include("resources/event/body_error.jl")
-        catch e # XXX: this isn't failing and it should
-            @show e.error.error == ArgumentError("the second argument must be a body, given :notabody")
-        end
-
     end
+
+
+    @testset "Macro Side Effects" begin
+        @event foo() 4
+
+        @test foo().proc() === 4
+    end
+
 
 end
