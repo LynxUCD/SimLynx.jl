@@ -1,19 +1,23 @@
 @testset "event.jl" begin
 
-    @event test_process() begin
-        return "We did it!"
+    @event test_event() begin
+        return true
     end
 
-    @test test_process().name == "test_process()"
-    @test test_process().proc() == "We did it!"
-    @test typeof(test_process()) === Event
+    @test test_event().name == "test_event()"
+    @test test_event().proc() === true
+    @test typeof(test_event()) === Event
 
     @testset "Event Errors" begin
+        err = nothing
         try
             include("resources/event/sig_error.jl")
         catch e
-            @test typeof(e.error.error) === ArgumentError
+            err = e
         end
+
+        @test typeof(err.error.error) === ArgumentError
+
     end
 
 
