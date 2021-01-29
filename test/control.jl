@@ -50,21 +50,9 @@
     end
 
     @testset "schedule errors" begin
-        err = nothing
+        @event test_process() begin true end
 
-        try
-            include("resources/control/keyword_error.jl")
-        catch e
-            err = e
-        end
-        @test typeof(err.error.error) === ArgumentError
-        # @test typeof(err) !== nothing && typeof(err.error.error) === ArgumentError
-
-        try
-            include("resources/control/element_error.jl")
-        catch e
-            err = e
-        end
-        @test typeof(err.error) === MethodError
+        @test_throws ArgumentError @m_throw @schedule nope test_process()
+        @test_throws MethodError @m_throw @schedule now :nope
     end
 end

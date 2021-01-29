@@ -9,15 +9,7 @@
     @test typeof(test_event()) === Event
 
     @testset "Event Errors" begin
-        err = nothing
-        try
-            include("resources/event/sig_error.jl")
-        catch e
-            err = e
-        end
-
-        @test typeof(err.error.error) === ArgumentError
-
+        @test_throws ArgumentError @m_throw @event foo begin true end
     end
 
 
