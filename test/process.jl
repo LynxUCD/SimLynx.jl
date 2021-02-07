@@ -25,45 +25,52 @@ include("resources/test_utilities.jl")
     end
     
     @testset "Process states" begin
-        customerList = []
+        # TODO: 
+           # use a state list instead
+           # use two processes, control and test process
+            # control can look at the test process state and lock the state of the process
+            # and release to check if the test process is set properly to :create, :delayed, etc...
+
+        stateList = []
+        proc_list = []
         tellers = nothing
-        # I have removed Exponential and Uniform distribution for this test. Hopefully it's okay
-        @event generate(i:: Integer, n::Integer) begin
-            @schedule now customer(i)
-            if i < n
-                @schedule in rand(1:9) generate(i + 1, n)
-                # push!(customerList, customer(i))
-            end
-        end
 
         "The ith customer into the system."
-        @process customer(i::Integer) begin
+        @process control(i::Integer) begin
             @with_resource tellers begin
-                work(rand(1:4))
-                #push!(customerList, customer(i))
+                # current process in here is the control process... how to look at testProcess after scheduling?
+                test1 = testProcess(1)
+                test2 = testProcess(2)
+                @schedule in 0.0 test1 # gets scheduled and will be delayed due to control taking the resource
+                @schedule immediate test2   # control(1) should get interrupted
+                work(rand(1:4)) # takes up the only resource
+
+                # use the variable that stored the process to access testProcess(1) and push it's delayed state in the state list
+                push!(stateList, current_process().state)   # :active
+                push!(stateList, test1.state)   # delayed
             end
-            #println("State of this customer: ", customer(i).state)
         end
 
-        # @with_resource customer(1) begin
-        #     return true
-        # end
+        @process testProcess(i::Integer) begin
+            @with_resource tellers begin
+                work(rand(1:4))
+                push!(proc_list, current_process()) # if I push the state, it will remain as :active and we'll never see it being updated to terminated
+            end
+        end
 
-        # for i = 1:10
-        #     println(customer(i))
-        # end
-
-        #everything is stuck under current_simulation so I cannot use things like @with_resource 
-        #to trigger a request, to get a process_state! changed from created to active or delayed etc
 
         @simulation begin
             current_trace!(true)
-            tellers = Resource(2, "tellers")
-            @schedule at 0.0 generate(1, 10)
+            tellers = Resource(1, "tellers")
+            @schedule now control(1)
             start_simulation()
-            println(customer(1).state)  # I would think the state of this would be terminated but it's still stuck at created
+            println(stateList)
+            println(proc_list)
         end
-        println(customer(1).state)  # even outside the simulation scope, the process is still set to :created
+
+        @test stateList[1] == :active
+        @test stateList[2] == :delayed
+        @test proc_list[1].state == :terminated
 
         # statusList = [:active, :working, :delayed, :interrupted, :suspended, :terminated]
         # # These are currently failing.. but I suspect it's because we don't export this function (hence why I have to SimLynx.something) 
