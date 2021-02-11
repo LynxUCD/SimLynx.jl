@@ -18,6 +18,4 @@
 
         @test foo().proc() === 4
     end
-
-
 end
