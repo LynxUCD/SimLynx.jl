@@ -82,7 +82,7 @@ process_state(process::Process) = process.state
 function process_state!(process::Process, state::Symbol)
     process.state = state
     if current_trace()
-        @printf("%9.3f: %s\n", current_time(), current_notice().element)
+        @printf("%9.3f: %s\n", current_time(), process)
     end
 end
 
