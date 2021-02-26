@@ -216,6 +216,6 @@ end
 
 "Resume the execution of a suspended or interrupted process."
 function resume(process::Process, notice::Notice)
-    process_state!(process, :active)
+    process_state!(process, :working)
     schedule(notice)
 end
