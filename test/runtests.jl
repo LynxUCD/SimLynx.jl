@@ -14,7 +14,6 @@ const dir = joinpath(dirname(pathof(SimLynx)), "..", "test")
               "queue.jl",
               "rendezvous.jl",
               "resource.jl",
-              "SimLynx.jl",
               "simulation.jl",
               "statistics.jl",
               "variable.jl"]
