@@ -1,33 +1,53 @@
 @testset "history.jl" begin
-    println("No Tests written for history.jl")
 
-    @testset "Scheduling Symbols" begin
-        got = Int64[]
-        want = [1,2,3,4,5,6,7,8,9,10]
+        @testset "tallied" begin
+            global tallied = Variable{Int64}(data=:tally, history=true)
 
-        @event test_process(i, _got) begin
-            push!(_got, i)
+            @process test_process(value_durations) begin
+                for (value, duration) in value_durations
+                    tallied.value = value
+                    work(duration)
+                end
+            end
+
+            @simulation begin
+                value_durations = [(1, 2.0), (2, 1.0), (3, 2.0), (4, 3.0)]
+
+                @schedule at 1.0 test_process(value_durations)
+                @schedule in 3.0 test_process(value_durations)
+                @schedule now test_process(value_durations)
+
+                start_simulation()
+            end
+
+            want = [1, 1, 2, 1, 2, 3, 3, 2, 4, 4, 3, 4]
+            @test tallied.history.data == want
         end
 
-        @simulation begin
-            # Future events
-            @schedule at 0.0 test_process(4, got)
-            @schedule at 0.0 test_process(5, got)
-            @schedule at 0.5 test_process(7, got)
-            @schedule at 2.0 test_process(9, got)
-            @schedule at 1.0 test_process(8, got)
-            @schedule in 0.0 test_process(6, got)
-            @schedule in 2.0 test_process(10, got)
-            # Now events
-            @schedule now test_process(2, got)
-            @schedule now test_process(3, got)
-            @schedule immediate test_process(1, got)
+        @testset "accumulated" begin
+            global accumulated = Variable{Int64}(0, history=true)
 
-            start_simulation()
-            @show current_simulation
+            @process test_process(value_durations) begin
+                for (value, duration) in value_durations
+                    accumulated.value = value
+                    work(duration)
+                end
+            end
 
-            # @test got == want # Tests complete functionality of control.jl
+            @simulation begin
+                value_durations = [(1, 2.0), (2, 1.0), (3, 2.0), (4, 3.0)]
+
+                @schedule at 1.0 test_process(value_durations)
+                @schedule in 3.0 test_process(value_durations)
+                @schedule now test_process(value_durations)
+
+                start_simulation()
+            end
+
+            want = [0, 1, 2, 1, 2, 3, 2, 4, 3, 4]
+            @test accumulated.history.data == want
+
+            want = [0.0, 2.0, 1.0, 0.0, 0.0, 2.0, 0.0, 1.0, 2.0, 3.0]
+            @test accumulated.history.durations == want
         end
-    end
-
 end

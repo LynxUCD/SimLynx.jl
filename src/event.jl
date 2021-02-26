@@ -31,11 +31,6 @@ macro event(sig, body)
         throw(ArgumentError("the first argument must be a signature, " *
                             "given $sig"))
 
-    # XXX: This is ineffective. @event foo() 4 is valid.
-    # @capture(body, begin exprs__ end) ||
-    #     throw(ArgumentError("the second argument must be a body, " *
-    #                         "given $body"))
-    # Extract the argument identifiers
     args = [isa(arg, Symbol) ? arg : arg.args[1] for arg in xs]
     quote
         $(esc(sig)) =
