@@ -1,6 +1,6 @@
 @testset "history.jl" begin
 
-        @testset "tallied" begin
+        @testset ":tally" begin
             global tallied = Variable{Int64}(data=:tally, history=true)
 
             @process test_process(value_durations) begin
@@ -13,9 +13,9 @@
             @simulation begin
                 value_durations = [(1, 2.0), (2, 1.0), (3, 2.0), (4, 3.0)]
 
+                @schedule now test_process(value_durations)
                 @schedule at 1.0 test_process(value_durations)
                 @schedule in 3.0 test_process(value_durations)
-                @schedule now test_process(value_durations)
 
                 start_simulation()
             end
@@ -24,7 +24,8 @@
             @test tallied.history.data == want
         end
 
-        @testset "accumulated" begin
+        @testset ":accumulate" begin
+            # XXX: Shouldn't Variable{Int64}(data=:accumulate, history=true) work here?
             global accumulated = Variable{Int64}(0, history=true)
 
             @process test_process(value_durations) begin
@@ -37,9 +38,9 @@
             @simulation begin
                 value_durations = [(1, 2.0), (2, 1.0), (3, 2.0), (4, 3.0)]
 
+                @schedule now test_process(value_durations)
                 @schedule at 1.0 test_process(value_durations)
                 @schedule in 3.0 test_process(value_durations)
-                @schedule now test_process(value_durations)
 
                 start_simulation()
             end
