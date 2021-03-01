@@ -1,23 +1,29 @@
 @testset "queue.jl" begin
-    queue = Queue{Int64}()
-    enqueue!(queue, 2)
-    add!(queue, 3)
-    add!(queue, 2)
-    @test first(queue) == 2
-    remove!(queue, 2)
-    @test length(queue) == 2
-    @test last(queue) == 2
-    dequeue!(queue)
-    @test isempty(queue) == false
-    dequeue!(queue)
-    @test isempty(queue) == true
 
-    lifo = LifoQueue{Int64}()
+    @testset "fifo" begin
+        queue = Queue{Int64}()
+        @test enqueue!(queue, 2) == [2]
+        @test enqueue!(queue, 3) == [2, 3]
+        @test add!(queue, 4) == [2, 3, 4]
+        @test first(queue) == 2
+        @test last(queue) == 4
+        @test length(queue) == 3
+        @test dequeue!(queue) == 2
+        @test dequeue!(queue) == 3
+        @test dequeue!(queue) == 4
+        @test isempty(queue) == true
+    end
 
-    enqueue!(lifo, 2)
-    @test lifo.n.value == 1
-    @test lifo.data[1] == 2
-    dequeue!(lifo)
-    @test lifo.n.value == 0
+    @testset "lifo" begin
+        lifo = LifoQueue{Int64}()
+        @test enqueue!(lifo, 2) == [2]
+        @test enqueue!(lifo, 3) == [2, 3]
+        @test first(lifo) == 2
+        @test last(lifo) == 3
+        @test length(lifo) == 2
+        @test dequeue!(lifo) == 3
+        @test dequeue!(lifo) == 2
+        @test isempty(lifo) == true
+    end
 
 end
