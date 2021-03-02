@@ -41,7 +41,7 @@
     end
 
     @testset ":accumulate" begin
-        global accumulated = Variable{Int64}(0, history=true)
+        global accumulated = Variable{Int64}(data=:accumulate, history=true)
 
         update_list = []
         final_value = nothing

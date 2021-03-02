@@ -25,8 +25,7 @@
         end
 
         @testset ":accumulate" begin
-            # XXX: Shouldn't Variable{Int64}(data=:accumulate, history=true) work here?
-            global accumulated = Variable{Int64}(0, history=true)
+            global accumulated = Variable{Int64}(data=:accumulate, history=true)
 
             @process test_process(value_durations) begin
                 for (value, duration) in value_durations
@@ -45,10 +44,10 @@
                 start_simulation()
             end
 
-            want = [0, 1, 2, 1, 2, 3, 2, 4, 3, 4]
+            want = [1, 2, 1, 2, 3, 2, 4, 3, 4]
             @test accumulated.history.data == want
 
-            want = [0.0, 2.0, 1.0, 0.0, 0.0, 2.0, 0.0, 1.0, 2.0, 3.0]
+            want = [2.0, 1.0, 0.0, 0.0, 2.0, 0.0, 1.0, 2.0, 3.0]
             @test accumulated.history.durations == want
         end
 end

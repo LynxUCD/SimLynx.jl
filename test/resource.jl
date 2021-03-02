@@ -2,19 +2,22 @@
     # Note to self:
         # -release is being tested by checking that the available unit goes back up (increments) after a process finishes working which calls deallocate
         # -request is tested in the @with_resource macro which also allocates resources
+    # TODO:
+        # -test nested resources
+        # -test request and release
 
     shared = nothing
     resourceList = []
     @process control() begin
         @with_resource shared begin # control takes the first available resource from shared
-            push!(resourceList, shared.available.value) 
+            push!(resourceList, shared.available.value)
             @schedule now resourceConsumer()
             work(2)
         end
         # control has released its resource, went from 0 available to 1
         push!(resourceList, shared.available.value)
-    end 
-    
+    end
+
     @process resourceConsumer() begin
         @with_resource shared begin # resourceConsumer takes the second available resource from shared
             push!(resourceList, shared.available.value)
