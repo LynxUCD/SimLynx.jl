@@ -62,8 +62,6 @@ export @send
 export Variable
 export plot_history
 export print_stats
-export increment!
-export decrement!
 
 # queue.jl
 export Queue

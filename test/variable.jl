@@ -26,13 +26,6 @@
 
         want = [0.0, 1.0, 2.0, 3.0, 3.0, 3.0, 4.0, 5.0, 5.0, 6.0, 6.0, 8.0]
         @test update_list == want
-
-        decrement!(tallied, 1)
-        @test tallied.value == final_value - 1
-
-        increment!(tallied, 1)
-        @test tallied.value == final_value
-
         @test typeof(tallied.history) == SimLynx.TalliedHistory{Int64}
         @test typeof(tallied.stats) == SimLynx.TalliedStats{Int64}
 
@@ -67,13 +60,6 @@
 
         want = [0.0, 1.0, 2.0, 3.0, 3.0, 3.0, 4.0, 5.0, 5.0, 6.0, 6.0, 8.0]
         @test update_list == want
-
-        decrement!(accumulated, 1)
-        @test accumulated.value == final_value - 1
-
-        increment!(accumulated, 1)
-        @test accumulated.value == final_value
-
         @test typeof(accumulated.history) == SimLynx.AccumulatedHistory{Int64}
         @test typeof(accumulated.stats) == SimLynx.AccumulatedStats{Int64}
     end
