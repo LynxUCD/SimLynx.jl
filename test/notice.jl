@@ -1,3 +1,3 @@
 @testset "notice.jl" begin
-    println("No Tests written for notice.jl")
+    # notice.jl is tested in control.jl and process.jl.
 end

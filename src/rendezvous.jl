@@ -23,7 +23,7 @@ end
 """
 Check for interprocess communications rendezvous. Returns the message and
 acceptor and a Boolean indicating whether a rendezvous will occur. The first
-two returned values are nothing of the Boolean is false.
+two returned values are nothing if the Boolean is false.
 """
 function rendezvous(process::Process)
     for (i, message) in enumerate(process.queue)

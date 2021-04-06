@@ -148,4 +148,3 @@ function plot_history(var::Variable;
     end
     return nothing
 end
-

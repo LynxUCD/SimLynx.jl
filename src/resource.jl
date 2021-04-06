@@ -66,7 +66,7 @@ function deallocate(resource::Resource, process::Process)
         @printf("%9.3f: %s released %s\n", current_time(),
                 process, resource)
     end
-    if resource.available.value < typemax(Int64)
+    if resource.available.value < typemax(Int64) && resource.available.value < resource.units
         increment!(resource.available, 1)
     end
     decrement!(resource.allocated, 1)
