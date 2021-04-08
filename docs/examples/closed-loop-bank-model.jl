@@ -22,7 +22,7 @@ tellers = nothing
         # We don't want to wait after the last customer, which could extend the
         # simulation time past the last customer leaving.
         if i < n
-            work(rand(dist))
+            wait(rand(dist))
         end
     end
 end

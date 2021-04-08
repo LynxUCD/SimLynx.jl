@@ -39,7 +39,7 @@ tellers = nothing
     for i = 1:n
         @schedule now customer(i)
         if i < n
-            work(rand(dist))
+            wait(rand(dist))
         end
     end
 end
