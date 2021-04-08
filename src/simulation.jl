@@ -28,7 +28,7 @@ You should generally use the @simulation macro to create a new simulation.
 mutable struct Simulation
     running::Bool
     trace::Bool
-    time::Float64 # XXX: Look into fixedPointNumber.jl to customize time types.
+    time::Float64
     notice::Union{Notice, Nothing}
     process::Union{Process, Nothing}
     now_event_list::Array{Notice, 1}
@@ -113,7 +113,7 @@ end
         <body>
     end
 
-Executes the body within the specified simulation environment.
+Executes the body within the specified simulation environment. 
 """
 macro simulation(sim, body)
     quote

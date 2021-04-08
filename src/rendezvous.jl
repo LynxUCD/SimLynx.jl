@@ -39,14 +39,16 @@ end
 
 """
     accept <caller> <signature>
+
+Accept a message from `caller` with the given `signature`.
 """
 macro accept(caller::Symbol, sig)
-   @capture(sig, f_Symbol(xs__)) ||
-        throw(ArgumentError("second argument must be a signature, " *
+    @capture(sig, f_Symbol()) ||
+        throw(ArgumentError("second argument must be a signature with no arguments, " *
                             "given $sig"))
+    acceptors = [Acceptor(f, nothing)]
     quote
-        current_process().acceptors = [Acceptor(Symbol($(esc(f))),
-                                                nothing)]
+        current_process().acceptors = $acceptors
         while true
             message, acceptor, accepted = rendezvous(current_process())
             if accepted
@@ -60,15 +62,28 @@ macro accept(caller::Symbol, sig)
     end
 end
 
+"""
+    accept <caller> <signature> begin
+        <body>
+    end
+
+Accept a message from `caller` with the given `signature`.
+
+The `caller` will be bound to the process instance that sent the message.
+
+The `signature` is <name>(<arg>...) where `name` is the name associated with
+the message and the `arg`s are bound to the corresponding values in the 
+message.
+"""
 macro accept(caller::Symbol, sig, body)
     @capture(sig, f_Symbol(xs__)) ||
         throw(ArgumentError("second argument must be a signature, " *
                             "given $sig"))
-    proc = Expr(:->, sig.args[2], body)
+    args = Expr(:tuple, caller, xs...)
+    proc = Expr(:->, args, body)
+    acceptors = [Acceptor(f, eval(proc))]
     quote
-        current_process().acceptors =
-            [Acceptor(Symbol($(esc(f))),
-                      $(esc(proc)))]
+        current_process().acceptors = $acceptors
         while true
             message, acceptor, accepted = rendezvous(current_process())
             if accepted
@@ -99,15 +114,16 @@ macro send(callee, sig)
         throw(ArgumentError("second argument must be a signature, " *
                             "given $sig"))
     end
+    name = QuoteNode(sig.args[1])
     quote
         if isnothing(current_process())
             Error("call to send must be within a process")
         end
-        let callee_process = $(esc(callee))
+        let callee_process = $(esc(callee)),
             message = Message(current_time(),
                               current_process(),
-                              Symbol($(esc(sig.args[1]))),
-                              [$(esc.(sig.args[2:end])...)])
+                              $name,
+                              [current_process(), $(esc.(sig.args[2:end])...)])
             push!(callee_process.queue, message)
             process_state!(current_process(), :delayed)
             @schedule immediate callee_process
