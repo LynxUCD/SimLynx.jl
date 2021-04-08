@@ -52,7 +52,7 @@ function harbor_master(ship::Process, action::Symbol)
             else
                 other_ship = first(dock)
                 notice = interrupt(other_ship)
-                notice.time = current_time() + 2*notice.time
+               notice.time = current_time() + 2*notice.time
                 resume(other_ship, notice)
             end
             add!(dock, ship)
@@ -93,7 +93,7 @@ end
 
 function run_simulation()
     @simulation begin
-        # current_trace!(true)
+        current_trace!(true)
         global cycle_time = Variable{Float64}(data=:tally)
         global dock = Queue{Process}()
         global queue = FifoQueue{Process}()

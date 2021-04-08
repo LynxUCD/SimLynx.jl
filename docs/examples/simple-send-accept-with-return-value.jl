@@ -6,10 +6,10 @@ SimLynx.greet()
 using Distributions: Exponential, Uniform
 using Random
 
-@process lock() begin
+@process my_lock() begin
     while true
         @accept caller lock(i::Integer) begin
-            return "locked for p1($i)"
+            return "locked for $caller which should be p1($i)"
         end
         @accept caller unlock()
     end
@@ -32,7 +32,7 @@ end
 function run_simulation(n::Integer)
     @simulation begin
         # current_trace!(true)
-        global the_lock = @schedule now lock()
+        global the_lock = @schedule now my_lock()
         for i = 1:n
             @schedule at rand(Uniform(0.0, 10.0)) p1(i)
         end

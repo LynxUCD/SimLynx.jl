@@ -1,8 +1,10 @@
 using Test, SimLynx
-
 const dir = joinpath(dirname(pathof(SimLynx)), "..", "test")
 
+
 @testset "SimLynx" begin
+    include("resources/test_utilities.jl")
+
     for f in ["activity.jl",
               "control.jl",
               "event.jl",
@@ -12,7 +14,6 @@ const dir = joinpath(dirname(pathof(SimLynx)), "..", "test")
               "queue.jl",
               "rendezvous.jl",
               "resource.jl",
-              "SimLynx.jl",
               "simulation.jl",
               "statistics.jl",
               "variable.jl"]

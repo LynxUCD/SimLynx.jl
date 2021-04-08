@@ -20,6 +20,8 @@ mutable struct AccumulatedHistory{T<:Real} <: History{T}
     durations::Array{Float64,1}
     AccumulatedHistory{T}(x::T) where {T<:Real} =
         new([x], [0.0])
+    AccumulatedHistory{T}() where {T<:Real} =
+        new([], [])
 end
 
 "Update an accumulated history with a new value and duration."
@@ -27,7 +29,10 @@ function update!(hist::AccumulatedHistory{T}, x::T, t::Float64) where {T<:Real}
     if t < 0.0
         throw(ArgumentError("weight t cannot be negative, given $t"))
     end
-    if x == hist.data[end]
+    if isempty(hist.data)
+        hist.data = [x]
+        hist.durations = [t]
+    elseif x == hist.data[end]
         hist.durations[end] += t
     else
         push!(hist.data, x)
