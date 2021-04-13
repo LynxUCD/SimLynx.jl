@@ -1,12 +1,10 @@
-#using SimLynx, Distributions, JSON, Gtk, Gtk.ShortNames
 using SimLynx, Distributions, JSON, Gtk, Gtk.ShortNames, Plots, Statistics
+#using Distributions, JSON, Gtk, Gtk.ShortNames, Plots, Statistics
 
 include("components.jl")
 
-function CameraFrame(::Array{UInt8}) end
-
 const N = 4
-const verbose = true
+const verbose = false
 const stochastic = false
 
 cameras = Vector{Any}(undef,N)
@@ -100,7 +98,7 @@ end
         end
         # yieldto(control_task())
         wait(1/10)
-        @send process CameraFrame(data)
+        @send process CameraFrame(data, type)
         n += 1
     end
 
@@ -111,16 +109,11 @@ end
 
 @process processing_model(num) begin
     stats = GtkBox(:v)
-    histogram = GtkBox(:v)
 
     set_gtk_property!(stats, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
     set_gtk_property!(stats, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
-
-    set_gtk_property!(histogram, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
-    set_gtk_property!(histogram, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
 
     grid[num,3] = stats
-    grid[num,4] = histogram
 
     pad = GtkLabel("")
 
@@ -136,6 +129,10 @@ end
     _max = GtkLabel("max: nan")
     _range = GtkLabel("range: nan")
 
+    _pixelGraph = GtkCanvas(350,250)
+    _bar = GtkCanvas(5,5)
+
+
     G_.justify(n, Gtk.GConstants.GtkJustification.LEFT)
     G_.justify(_min, Gtk.GConstants.GtkJustification.LEFT)
     G_.justify(_max, Gtk.GConstants.GtkJustification.LEFT)
@@ -145,11 +142,12 @@ end
     push!(stats, _min)
     push!(stats, _max)
     push!(stats, _range)
-
-
+    push!(stats, _pixelGraph)
+    push!(stats, _bar)
 
     while(true)
-        @accept caller CameraFrame(data) begin
+        @accept caller CameraFrame(data, type) begin
+            println(type)
             # dim = 3
             # frame = Array{UInt8, dim}()
 
@@ -161,16 +159,64 @@ end
                 println("$(current_time()): Processing $(num) ($(length(data)) bytes)")
             end
 
-            local _length::Int64 = length(data)
-            local _minimum::Int64 = minimum(data)
-            local _maximum::Int64 = maximum(data)
+            mini = minimum(data)
+            maxi = maximum(data)
+            G_.text(n, "n: $(length(data))")
+            G_.text(_min, "min: $(mini)")
+            G_.text(_max, "max: $(maxi)")
+            G_.text(_range, "range: $(maxi - mini)")
 
-            G_.text(n, "n: $(_length)")
-            G_.text(_min, "min: $(_minimum)")
-            G_.text(_max, "max: $(_maximum)")
-            G_.text(_range, "range: $(_maximum - _minimum)")
+            gray_data = Array{UInt8, 1}()
 
-            showall(frame)
+            for i = 1:(Int64(length(data)/3))
+                local val::Int64 = Int64(round(0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2]))
+                push!(gray_data, val)
+                data[i+1] = (round(((data[(i*3)+1] * 0.2126) + (data[(i*3)+2] * 0.7152) +   (data[(i*3)+3] * 0.0722))), 0, 255)
+            end
+
+            clamp!(gray_data, 0, 255)
+
+            data = gray_data
+
+            frequency_arr = []
+            for i = 0:255
+                _c = count(==(i), data)
+                push!(frequency_arr, _c)
+            end
+            # @guarded draw(_pixelGraph) do widget
+            #     ctx = getgc(_pixelGraph)
+            #     h1 = height(_pixelGraph)
+            #     w1 = width(_pixelGraph)
+
+            #     set_source_rgb(ctx, 255, 255, 255)
+            #     rectangle(ctx, 0, 0, w1, h1)
+            #     fill(ctx)
+
+            #     local _max::Float64 = maximum(frequency_arr)
+            #     local _len::Int64 = length(frequency_arr)
+
+            #     for i = 1:_len
+            #         local _w::Float64 = frequency_arr[i] / _max
+            #         local _h::Float64 = h1/_len
+            #         rectangle(ctx, 0, i * _h, w1 * _w, _h)
+            #         set_source_rgb(ctx, 0, 0, 0)
+            #         fill(ctx)
+            #     end
+            # end
+
+            # @guarded draw(_bar) do widget
+            #     ctx = getgc(_bar)
+            #     h = height(_bar)
+            #     w = width(_bar)
+            #     # Paint red or green rectangle
+            #     rectangle(ctx, 0, 0, w, h)
+            #     _red = (maxi - mini) < 64 ? 1 : 0
+            #     _green = (maxi - mini) < 64 ? 0 : 1
+            #     set_source_rgb(ctx, _red, _green, 0)
+            #     fill(ctx)
+            # end
+
+            # showall(frame)
         end
         work(rand(0:4))
     end

@@ -72,7 +72,7 @@ Accept a message from `caller` with the given `signature`.
 The `caller` will be bound to the process instance that sent the message.
 
 The `signature` is <name>(<arg>...) where `name` is the name associated with
-the message and the `arg`s are bound to the corresponding values in the 
+the message and the `arg`s are bound to the corresponding values in the
 message.
 """
 macro accept(caller::Symbol, sig, body)
