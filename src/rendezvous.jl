@@ -23,7 +23,7 @@ end
 """
 Check for interprocess communications rendezvous. Returns the message and
 acceptor and a Boolean indicating whether a rendezvous will occur. The first
-two returned values are nothing if the Boolean is false.
+two returned values are nothing of the Boolean is false.
 """
 function rendezvous(process::Process)
     for (i, message) in enumerate(process.queue)
@@ -79,11 +79,13 @@ macro accept(caller::Symbol, sig, body)
     @capture(sig, f_Symbol(xs__)) ||
         throw(ArgumentError("second argument must be a signature, " *
                             "given $sig"))
+    name = QuoteNode(f)
     args = Expr(:tuple, caller, xs...)
     proc = Expr(:->, args, body)
-    acceptors = [Acceptor(f, eval(proc))]
     quote
-        current_process().acceptors = $acceptors
+        let acceptors = [Acceptor($name, $(esc(proc)))]
+            current_process().acceptors = acceptors
+        end
         while true
             message, acceptor, accepted = rendezvous(current_process())
             if accepted

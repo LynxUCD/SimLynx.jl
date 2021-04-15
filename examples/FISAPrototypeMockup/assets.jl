@@ -1,23 +1,40 @@
+#------------ BEGIN UI variables --------------
 max_width = 1500
 max_height = 1080
-frame = Window("FISA Prototype Mock-Up", max_width, max_height)
+
+cameras = Vector{Any}(undef,N)
+processors = Vector{Any}(undef,N)
+#------------ END UI variables --------------
+
+#------------ BEGIN Main Window Assets --------------
+frame = GtkWindow("FISA Prototype Mock-Up", max_width, max_height)
 set_gtk_property!(frame, :accept_focus, true)
 set_gtk_property!(frame, :expand, true)
 
-grid = Grid()
+grid = GtkGrid()
 set_gtk_property!(grid, :expand, true)
 set_gtk_property!(grid, :column_homogeneous, true)
 
-
-function set_prop(GtkElement::Gtk.GtkContainer, prop::Symbol, value::Any)
-    set_gtk_property!(GtkElement, prop, value)
-    return GtkElement
-end
-# initial setting of columns
-
+showall(frame)
 
 push!(frame, grid)
+#------------ END Main Window Assets --------------
 
+#------------ BEGIN Camera Model Assets --------------
+box1 = GtkBox(:v)
+set_gtk_property!(box1, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
+
+box2 = GtkBox(:v)
+set_gtk_property!(box2, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
+
+box3 = GtkBox(:v)
+set_gtk_property!(box3, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
+
+box4 = GtkBox(:v)
+set_gtk_property!(box4, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
+
+push!(cameras, box1, box2, box3, box4)
+#------------ END Camera Model Assets --------------
 
 # (define menu-bar
 #   (instantiate menu-bar%
