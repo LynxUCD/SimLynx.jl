@@ -7,6 +7,14 @@ const N = 4
 const verbose = false
 const stochastic = false
 
+cameras = Vector{Any}(undef,N)
+processors = Vector{Any}(undef,N)
+
+camera_canvasen = [box1, box2, box3, box4]
+processor_canvasen = Vector{Any}(undef,N)
+
+
+
 camera_defs = [
     ("monster.mp4", Int(max_width/4), Int(max_height/4), :rgba, 1, 0),
     ("teapot.mp4", Int(max_width/4), Int(max_height/4), :gray, 1, 0),
@@ -34,25 +42,24 @@ function count_frames(filename)
 end
 
 @process camera_model(num, filename, width, height, type, contrast, brightness) begin
+    local process = processors[num]
+    local canvas = camera_canvasen[num]
+
     if stochastic
         contrast = random_contrast()
         brightness = random_brightness()
     end
 
-    process = processors[num]
-
-    n_frames = count_frames(filename)
-
     dim = :rgba === type ? 4 : 3
     alph = :rgba === type ? true : false
 
+    n_frames = count_frames(filename)
+
     local data::Array{UInt8,1} = zeros(UInt8, width * height * dim)
     local gray_data::Array{UInt8,1} = zeros(UInt8, width * height)
-    pixbuf = GtkPixbuf(data=reshape(data, (width * dim, height)), has_alpha=alph)
+    pixbuf = Pixbuf(data=reshape(data, (width * dim, height)), has_alpha=alph)
 
-    canvas = columns[num]
     status = GtkStatusbar(); push!(status, 1, "File: $filename")
-    set_gtk_property!(canvas, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
     push!(canvas, status)
 
     bitmap = GtkImage(pixbuf)
@@ -61,9 +68,7 @@ end
     progress = GtkProgressBar()
     push!(canvas, progress)
 
-    grid[num,1:2] = canvas
-
-    showall(frame)
+    showall(window)
 
     ps, out = ffmpeg_subprocess(num, filename, type, width, height, contrast, brightness)
 
@@ -89,7 +94,7 @@ end
         end
         # yieldto(control_task())
         wait(1/10)
-        @send process CameraFrame(data, type)
+        @send process CameraFrame(data, type, width, height)
         n += 1
     end
 
@@ -98,9 +103,9 @@ end
     end
 end
 
-@process processing_model(num, _width, _height) begin
+@process processing_model(num) begin
     stats = GtkBox(:v)
-    _histogram = GtkBox(:v)
+    histogram = GtkBox(:v)
 
     #set_gtk_property!(stats, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
     #set_gtk_property!(stats, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
@@ -108,117 +113,112 @@ end
     #set_gtk_property!(_histogram, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
     #set_gtk_property!(_histogram, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
 
-    grid[num,3] = stats
-    grid[num,4] = _histogram
+    layout[num,3] = stats
+    layout[num,4] = histogram
 
     pad = GtkLabel("")
     pad2 = GtkLabel("")
 
     title = GtkLabel("")
     push!(stats, pad)
-    push!(_histogram, pad2)
+    push!(histogram, pad2)
 
     G_.markup(title,"""<u><b> Processor $(num) Statistics </b></u>""")
     push!(stats, title)
 
 
-    n = GtkLabel("n: nan")
-    _min = GtkLabel("min: nan")
-    _max = GtkLabel("max: nan")
-    _range = GtkLabel("range: nan")
-    _pixelGraph = GtkCanvas(350,256)
-    _bar = GtkCanvas(5,5)
+    count_text = GtkLabel("Pixel Count: nan")
+    min_text = GtkLabel("min: nan")
+    max_text = GtkLabel("max: nan")
+    range_text = GtkLabel("range: nan")
+    histogram = GtkCanvas(350,256)
+    # _bar = GtkCanvas(5,5)
 
-
-    #G_.justify(n, Gtk.GConstants.GtkJustification.LEFT)
-    #G_.justify(_min, Gtk.GConstants.GtkJustification.LEFT)
-    #G_.justify(_max, Gtk.GConstants.GtkJustification.LEFT)
-    #G_.justify(_range, Gtk.GConstants.GtkJustification.LEFT)
-
-    push!(stats, n)
-    push!(stats, _min)
-    push!(stats, _max)
-    push!(stats, _range)
-    grid[num, 5] = _pixelGraph
-    grid[num, 6] = _bar
+    push!(stats, count_text)
+    push!(stats, min_text)
+    push!(stats, max_text)
+    push!(stats, range_text)
+    # layout[num, 6] = _bar
     #push!(_histogram, _pixelGraph)
 
-
-
     while(true)
-        local data = nothing
-        local type = nothing
-        @accept caller CameraFrame(_data, _type) begin
-            data = _data
-            type = _type
-        end
+        local data::Vector{UInt8}
+        local frequency_arr::Array{UInt8,1}
+        local type::Symbol
+        local width::Int64
+        local height::Int64
 
+        @accept caller CameraFrame(_data::Vector{UInt8}, _type::Symbol, _width::Int64, _height::Int64) begin
             if verbose
                 println("$(current_time()): Processing $(num) ($(length(data)) bytes)")
             end
 
-            mini = minimum(data)
-            maxi = maximum(data)
-            G_.text(n, "n: $(length(data))")
-            G_.text(_min, "min: $(mini)")
-            G_.text(_max, "max: $(maxi)")
-            G_.text(_range, "range: $(maxi - mini)")
-            frequency_arr = []
+            data   = _data
+            type   = _type
+            width  = _width
+            height = _height
+        end
 
-            if type === :rgba
-                rgba_data = reshape(data, (4, _width * _height))
-                gray_rgb_data = zeros(UInt8, (3, _width * _height))
-                gray_data = zeros(UInt8, _width * _height)
-                gray_data .= rgb_to_gray.(rgba_data[1, :], rgba_data[2, :], rgba_data[3, :])
-                # Convert RGB to grayscale
-                gray_rgb_data[1, :] .= gray_data
-                gray_rgb_data[2, :] .= gray_data
-                gray_rgb_data[3, :] .= gray_data
-                data = reshape(gray_rgb_data, (3, _width, _height))
+        min = minimum(data)
+        max = maximum(data)
+        G_.text(count_text, "n: $(length(data))")
+        G_.text(min_text, "min: $(min)")
+        G_.text(max_text, "max: $(max)")
+        G_.text(range_text, "range: $(max - min)")
+
+        if type === :rgba
+            rgba_data = reshape(data, (4, width * height))
+            gray_rgb_data = zeros(UInt8, (3, width * height))
+            gray_data = zeros(UInt8, width * height)
+            gray_data .= rgb_to_gray.(rgba_data[1, :], rgba_data[2, :], rgba_data[3, :])
+            # Convert RGB to grayscale
+            gray_rgb_data[1, :] .= gray_data
+            gray_rgb_data[2, :] .= gray_data
+            gray_rgb_data[3, :] .= gray_data
+            data = reshape(gray_rgb_data, (3, width, height))
+        end
+
+        for i = 0:255
+            _c = count(==(i), data)
+            push!(frequency_arr, _c)
+        end
+
+        @guarded draw(histogram) do widget
+            ctx = getgc(histogram)
+            h1 = height(histogram)
+            w1 = width(histogram)
+
+            local _max::Float64 = maximum(frequency_arr)
+            local _len::Int64 = length(frequency_arr)
+
+            # Workaround because we can't clear what's drawn on a canvas. As far as we know, yet
+            rectangle(ctx, 0, 0, w1, h1)
+            set_source_rgb(ctx, 255, 255, 255)
+            fill(ctx)
+
+            set_source_rgb(ctx, 0, 0, 0)
+            for i = 1:_len
+                local _w::Float64 = frequency_arr[i] / _max
+                local _h::Float64 = h1/_len
+                move_to(ctx, 0, i)
+                line_to(ctx, w1 * _w, i)
+                Graphics.stroke(ctx)    # Need to specify Graphics. or else @guarded does not have stroke defined
             end
+        end
 
-            for i = 0:255
-                _c = count(==(i), data)
-                push!(frequency_arr, _c)
-            end
+        # @guarded draw(_bar) do widget
+        #     ctx = getgc(_bar)
+        #     h = height(_bar)
+        #     w = width(_bar)
+        #     # Paint red or green rectangle
+        #     rectangle(ctx, 0, 0, w, h)
+        #     _red = (maxi - mini) < 64 ? 1 : 0
+        #     _green = (maxi - mini) < 64 ? 0 : 1
+        #     set_source_rgb(ctx, _red, _green, 0)
+        #     fill(ctx)
+        # end
 
-            @guarded draw(_pixelGraph) do widget
-                ctx = getgc(_pixelGraph)
-                h1 = height(_pixelGraph)
-                w1 = width(_pixelGraph)
-
-                local _max::Float64 = maximum(frequency_arr)
-                local _len::Int64 = length(frequency_arr)
-
-                # Workaround because we can't clear what's drawn on a canvas. As far as we know, yet
-                rectangle(ctx, 0, 0, w1, h1)
-                set_source_rgb(ctx, 255, 255, 255)
-                fill(ctx)
-
-                set_source_rgb(ctx, 0, 0, 0)
-                for i = 1:_len
-                    local _w::Float64 = frequency_arr[i] / _max
-                    local _h::Float64 = h1/_len
-                    move_to(ctx, 0, i)
-                    line_to(ctx, w1 * _w, i)
-                    Graphics.stroke(ctx)    # Need to specify Graphics. or else @guarded does not have stroke defined
-                end
-            end
-
-            @guarded draw(_bar) do widget
-                ctx = getgc(_bar)
-                h = height(_bar)
-                w = width(_bar)
-                # Paint red or green rectangle
-                rectangle(ctx, 0, 0, w, h)
-                _red = (maxi - mini) < 64 ? 1 : 0
-                _green = (maxi - mini) < 64 ? 0 : 1
-                set_source_rgb(ctx, _red, _green, 0)
-                fill(ctx)
-            end
-
-            showall(frame)
-        work(rand(0:4))
+        showall(window)
     end
 end
 
@@ -233,8 +233,6 @@ function main()
 
     @simulation begin
         for (i, def) in enumerate(camera_defs)
-            # (vector-set! cameras i (schedule #:at (* 10 i) (camera-model i file-name width height type alpha beta)))
-            println(def...)
             cameras[i] = @schedule at i*10 camera_model(i, def...)
             processors[i] = @schedule at 0 processing_model(i, def[2], def[3])  #def[2] and def[3] and weidth and height in that order
         end
