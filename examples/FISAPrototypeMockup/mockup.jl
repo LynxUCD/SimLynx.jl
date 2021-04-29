@@ -1,4 +1,4 @@
-using SimLynx, JSON, Gtk, Gtk.ShortNames, Plots, Statistics
+using SimLynx, JSON, Gtk, Gtk.ShortNames, Plots, Statistics, StatsBase
 
 include("assets.jl")
 include("utilities.jl")
@@ -16,10 +16,10 @@ processor_canvasen = Vector{Any}(undef,N)
 
 
 camera_defs = [
-    ("monster.mp4", Int(max_width/4), Int(max_height/4), :rgba, 1, 0),
-    ("teapot.mp4", Int(max_width/4), Int(max_height/4), :gray, 1, 0),
-    ("teapot.mp4", Int(max_width/4), Int(max_height/4), :rgba, 1/2, 1/4),
-    ("teapot.mp4", Int(max_width/4), Int(max_height/4), :gray, 1/4, 0),
+    ("DashcamFootage1.mp4", Int(max_width/4), Int(max_height/4), :rgba, 1, 0),
+    ("DashcamFootage2.mp4", Int(max_width/4), Int(max_height/4), :gray, 1, 0),
+    ("DashcamFootage3.mp4", Int(max_width/4), Int(max_height/4), :rgba, 1/2, 1/4),
+    ("DashcamFootage4.mp4", Int(max_width/4), Int(max_height/4), :gray, 1/4, 0),
 ]
 
 function ffmpeg_subprocess(num, filename, type, width, height, contrast, brightness)
@@ -105,91 +105,83 @@ end
 
 @process processing_model(num) begin
     stats = GtkBox(:v)
-    histogram = GtkBox(:v)
-
-    #set_gtk_property!(stats, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
-    #set_gtk_property!(stats, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
-
-    #set_gtk_property!(_histogram, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
-    #set_gtk_property!(_histogram, :halign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
+    histogram = GtkCanvas(350,256)
 
     layout[num,3] = stats
     layout[num,4] = histogram
 
-    pad = GtkLabel("")
-    pad2 = GtkLabel("")
 
-    title = GtkLabel("")
-    push!(stats, pad)
-    push!(histogram, pad2)
+    pad = GtkLabel(""); push!(stats, pad)
+    pad = GtkLabel(""); push!(stats, pad)
 
-    G_.markup(title,"""<u><b> Processor $(num) Statistics </b></u>""")
+
+
+    title = GtkLabel(""); G_.markup(title,"""<u><b> Processor $(num) Statistics </b></u>""")
     push!(stats, title)
 
 
-    count_text = GtkLabel("Pixel Count: nan")
-    min_text = GtkLabel("min: nan")
-    max_text = GtkLabel("max: nan")
-    range_text = GtkLabel("range: nan")
-    histogram = GtkCanvas(350,256)
-    # _bar = GtkCanvas(5,5)
+    count_text = GtkLabel("Pixel Count: nan"); push!(stats, count_text)
+    min_text = GtkLabel("min: nan"); push!(stats, min_text)
+    max_text = GtkLabel("max: nan"); push!(stats, max_text)
+    range_text = GtkLabel("range: nan"); push!(stats, range_text)
 
-    push!(stats, count_text)
-    push!(stats, min_text)
-    push!(stats, max_text)
-    push!(stats, range_text)
-    # layout[num, 6] = _bar
-    #push!(_histogram, _pixelGraph)
+    local frequency_arr::Array{Int64} = Array{Int64}(undef,256)
+    local data::Array{UInt8}
+    local type::Symbol
+    local _width::Int64
+    local _height::Int64
+    local _mean::Float64
+    local _variance::Float64
+    local _kurtosis::Float64
+    local _min::Int64
+    local _max::Int64
 
     while(true)
-        local data::Vector{UInt8}
-        local frequency_arr::Array{UInt8,1}
-        local type::Symbol
-        local width::Int64
-        local height::Int64
-
-        @accept caller CameraFrame(_data::Vector{UInt8}, _type::Symbol, _width::Int64, _height::Int64) begin
+        @accept caller CameraFrame(_data::Array{UInt8}, _type::Symbol, width::Int64, height::Int64) begin
             if verbose
                 println("$(current_time()): Processing $(num) ($(length(data)) bytes)")
             end
-
             data   = _data
             type   = _type
-            width  = _width
-            height = _height
+            _width  = width
+            _height = height
         end
 
-        min = minimum(data)
-        max = maximum(data)
+        _min = minimum(data)
+        _max = maximum(data)
+        # _mean, _variance = StatsBase.mean_and_var(data)
+        # _kurtosis = StatsBase.kurtosis(data, _mean)
+
         G_.text(count_text, "n: $(length(data))")
-        G_.text(min_text, "min: $(min)")
-        G_.text(max_text, "max: $(max)")
-        G_.text(range_text, "range: $(max - min)")
+        G_.text(min_text, "min: $(_min)")
+        G_.text(max_text, "max: $(_max)")
+        G_.text(range_text, "range: $(_max - _min)")
 
         if type === :rgba
-            rgba_data = reshape(data, (4, width * height))
-            gray_rgb_data = zeros(UInt8, (3, width * height))
-            gray_data = zeros(UInt8, width * height)
+            rgba_data = reshape(data, (4, _width * _height))
+            gray_rgb_data = zeros(UInt8, (3, _width * _height))
+            gray_data = zeros(UInt8, _width * _height)
             gray_data .= rgb_to_gray.(rgba_data[1, :], rgba_data[2, :], rgba_data[3, :])
             # Convert RGB to grayscale
             gray_rgb_data[1, :] .= gray_data
             gray_rgb_data[2, :] .= gray_data
             gray_rgb_data[3, :] .= gray_data
-            data = reshape(gray_rgb_data, (3, width, height))
+            data = reshape(gray_rgb_data, (3, _width, _height))
         end
-
+        frequency_arr = []
         for i = 0:255
             _c = count(==(i), data)
             push!(frequency_arr, _c)
         end
+
+        # @send process Threat_Level(num, min, max, _kurtosis)
 
         @guarded draw(histogram) do widget
             ctx = getgc(histogram)
             h1 = height(histogram)
             w1 = width(histogram)
 
-            local _max::Float64 = maximum(frequency_arr)
-            local _len::Int64 = length(frequency_arr)
+            local _max::Int64 = maximum(frequency_arr)
 
             # Workaround because we can't clear what's drawn on a canvas. As far as we know, yet
             rectangle(ctx, 0, 0, w1, h1)
@@ -197,30 +189,46 @@ end
             fill(ctx)
 
             set_source_rgb(ctx, 0, 0, 0)
-            for i = 1:_len
+            for i = 1:255
                 local _w::Float64 = frequency_arr[i] / _max
-                local _h::Float64 = h1/_len
+                local _h::Float64 = h1/255
                 move_to(ctx, 0, i)
                 line_to(ctx, w1 * _w, i)
-                Graphics.stroke(ctx)    # Need to specify Graphics. or else @guarded does not have stroke defined
+                Graphics.stroke(ctx)
             end
         end
-
-        # @guarded draw(_bar) do widget
-        #     ctx = getgc(_bar)
-        #     h = height(_bar)
-        #     w = width(_bar)
-        #     # Paint red or green rectangle
-        #     rectangle(ctx, 0, 0, w, h)
-        #     _red = (maxi - mini) < 64 ? 1 : 0
-        #     _green = (maxi - mini) < 64 ? 0 : 1
-        #     set_source_rgb(ctx, _red, _green, 0)
-        #     fill(ctx)
-        # end
-
         showall(window)
+        sleep(0.0001)
     end
 end
+
+# @process decision_model(num) begin
+#     local num::Int64
+#     local min::Int64
+#     local max::Int64
+#     local kurtosis::Float64
+
+#     while(true)
+#         @accept caller Threat_Level(_num, _min, _max, _kurtosis) begin
+#             if verbose
+#                 println("$(current_time()): Processing $(num) ($(length(data)) bytes)")
+#             end
+#             _num, _min, _max, _kurtosis
+#         end
+
+#         @guarded draw(_bar) do widget
+#             ctx = getgc(_bar)
+#             h = height(_bar)
+#             w = width(_bar)
+#             # Paint red or green rectangle
+#             rectangle(ctx, 0, 0, w, h)
+#             _red = (maxi - mini) < 64 ? 1 : 0
+#             _green = (maxi - mini) < 64 ? 0 : 1
+#             set_source_rgb(ctx, _red, _green, 0)
+#             fill(ctx)
+#         end
+#     end
+# end
 
 function main()
     println("FISA Prototype Mock-Up")
@@ -234,7 +242,7 @@ function main()
     @simulation begin
         for (i, def) in enumerate(camera_defs)
             cameras[i] = @schedule at i*10 camera_model(i, def...)
-            processors[i] = @schedule at 0 processing_model(i, def[2], def[3])  #def[2] and def[3] and weidth and height in that order
+            processors[i] = @schedule at 0 processing_model(i)
         end
         # decider = @schedule at 0 decision_model
         start_simulation()

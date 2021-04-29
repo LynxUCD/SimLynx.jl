@@ -39,6 +39,20 @@ set_gtk_property!(box4, :valign, Gtk.GConstants.GtkAlign.GTK_ALIGN_START)
 layout[4,1:2] = box4
 #------------ END Camera Model Assets --------------
 
+#------------ BEGIN Decision Model Assets --------------
+# bar1 = GtkCanvas(5,5)
+# layout[1,7] = bar1
+
+# bar2 = GtkCanvas(5,5)
+# layout[2,7] = bar2
+
+# bar3 = GtkCanvas(5,5)
+# layout[3,7] = bar3
+
+# bar4 = GtkCanvas(5,5)
+# layout[4,7] = bar4
+#------------ END Decision Model Assets --------------
+
 # (define menu-bar
 #   (instantiate menu-bar%
 #     (frame)))
