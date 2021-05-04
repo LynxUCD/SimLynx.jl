@@ -33,18 +33,20 @@ random_brightness() = rand(Distributions.Uniform(-1,1))
 
 
 function ffmpeg_subprocess(num, filename, type, width, height, contrast, brightness)
+    err = verbose ? "ffmpeg_stderr[$(num)].txt" : nothing
     out = Pipe()
     ps = run(pipeline(`ffmpeg -i $(filename) -f image2pipe -vcodec rawvideo -s $(width)x$(height) -vf eq=contrast=$(contrast):brightness=$(brightness) -pix_fmt $(type) -`,
-                      stdout=out, stderr="ffmpeg_stderr[$(num)].txt"),
+                      stdout=out, stderr=err),
              wait=false)
     close(out.in)
     return ps, out
 end
 
 function count_frames(filename)
+    err = verbose ? "ffprobe_stderr.txt" : nothing
     out = Pipe()
     ps = run(pipeline(`ffprobe -i $(filename) -print_format json -loglevel fatal -show_streams -count_frames -select_streams v`,
-                      stdout=out, stderr="ffprobe_stderr.txt"),
+                      stdout=out, stderr=err),
              wait=true)
     json = JSON.parse(out)
     close(out)
@@ -60,8 +62,7 @@ end
         brightness = random_brightness()
     end
 
-    dim = :rgba === type ? 4 : 3
-    alph = :rgba === type ? true : false
+    dim, alph = :rgba === type ? (4, true) : (3, false)
 
     n_frames = count_frames(filename)
 
@@ -166,7 +167,7 @@ end
         _min = minimum(data)
         _max = maximum(data)
         _mean, _variance = StatsBase.mean_and_var(data)
-        _kurtosis = StatsBase.kurtosis(data, _mean)
+        _kurtosis = StatsBase.kurtosis(data, m=_mean)
 
         G_.text(count_text, "Pixel Count: $(length(data))")
         G_.text(min_text, "min: $(_min)")
