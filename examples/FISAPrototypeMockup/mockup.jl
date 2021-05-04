@@ -60,8 +60,7 @@ end
         brightness = random_brightness()
     end
 
-    dim = :rgba === type ? 4 : 3
-    alph = :rgba === type ? true : false
+    dim, alph = :rgba === type ? (4, true) : (3, false)
 
     n_frames = count_frames(filename)
 
@@ -83,18 +82,27 @@ end
     ps, out = ffmpeg_subprocess(num, filename, type, width, height, contrast, brightness)
 
     n = 1
-    gray_len::UInt64 = length(gray_data)
     while !eof(out)
         if type === :rgba
             read!(out, data)
         else
             read!(out, gray_data)
-            for i = 1:gray_len  # This could be faster
-                data[(i-1)*3+1] = gray_data[i]
-                data[(i-1)*3+2] = gray_data[i]
-                data[(i-1)*3+3] = gray_data[i]
-            end
+            # for i = 1:gray_len  # This could be faster
+            #     data[(i-1)*3+1] = gray_data[i]
+            #     data[(i-1)*3+2] = gray_data[i]
+            #     data[(i-1)*3+3] = gray_data[i]
+            # end
+            data[1:3:end] .= gray_data
+            data[2:3:end] .= gray_data
+            data[3:3:end] .= gray_data
         end
+
+        # if type === :gray
+        #     gray_data = data[1:(width * height)]
+        #     data[1:3:end] .= gray_data
+        #     data[2:3:end] .= gray_data
+        #     data[3:3:end] .= gray_data
+        # end
 
         G_.from_pixbuf(bitmap, pixbuf)
         set_gtk_property!(progress, :fraction, n/n_frames)
@@ -104,8 +112,7 @@ end
         if verbose
             println("$(current_time()): Camera $(num) grabbing frame $(n) ($(length(data)) bytes)")
         end
-        # yieldto(control_task())
-        wait(1/10)
+
         @send process CameraFrame(data, type, width, height)
         n += 1
     end
