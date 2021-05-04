@@ -167,7 +167,7 @@ end
         _min = minimum(data)
         _max = maximum(data)
         _mean, _variance = StatsBase.mean_and_var(data)
-        _kurtosis = StatsBase.kurtosis(data, m=_mean)
+        _kurtosis = StatsBase.kurtosis(data, _mean)
 
         G_.text(count_text, "Pixel Count: $(length(data))")
         G_.text(min_text, "min: $(_min)")
